@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../../stores/useTaskStore';
-import { usePlayerStore } from '../../stores/usePlayerStore';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { StarRating } from '../../components/ui/StarRating';
 import { ATTRIBUTE_MAP, RARITY_MAP } from '../../lib/constants';
@@ -15,17 +14,15 @@ interface FloatingReward {
 }
 
 export const TodayTasks: React.FC = () => {
-  const getTodayTasks = useTaskStore((s) => s.getTodayTasks);
+  const allTasks = useTaskStore((s) => s.tasks);
   const completeTask = useTaskStore((s) => s.completeTask);
-  const addExp = usePlayerStore((s) => s.addExp);
-  const addStardust = usePlayerStore((s) => s.addStardust);
-  const addAttributeExp = usePlayerStore((s) => s.addAttributeExp);
-  const spendStamina = usePlayerStore((s) => s.spendStamina);
-
   const [floatingRewards, setFloatingRewards] = useState<FloatingReward[]>([]);
   const [rewardCounter, setRewardCounter] = useState(0);
 
-  const tasks = getTodayTasks();
+  // Filter today's tasks: daily tasks + pending onetime tasks
+  const tasks = allTasks.filter(
+    (t) => t.cycle === 'daily' || (t.cycle === 'onetime' && t.status === 'pending')
+  );
   const completed = tasks.filter((t) => t.status === 'completed').length;
   const total = tasks.length;
 
@@ -34,16 +31,12 @@ export const TodayTasks: React.FC = () => {
 
   const handleComplete = (task: Task) => {
     if (task.status === 'completed') return;
-    const reward = completeTask(task.id, false);
-    if (!reward) return;
-    addExp(reward.exp);
-    addStardust(reward.stardust);
-    addAttributeExp(task.element, reward.exp);
-    spendStamina(task.staminaCost);
+    // completeTask handles exp/stardust/stamina internally
+    completeTask(task.id, false);
 
     const id = rewardCounter;
     setRewardCounter((c) => c + 1);
-    setFloatingRewards((prev) => [...prev, { id, exp: reward.exp, stardust: reward.stardust, taskId: task.id }]);
+    setFloatingRewards((prev) => [...prev, { id, exp: task.baseExp, stardust: task.baseStardust, taskId: task.id }]);
     setTimeout(() => {
       setFloatingRewards((prev) => prev.filter((r) => r.id !== id));
     }, 1500);

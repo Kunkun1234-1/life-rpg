@@ -2,16 +2,17 @@ import React from 'react';
 import type { AttributeKey } from '../../types';
 import { ATTRIBUTE_MAP } from '../../lib/constants';
 import { usePlayerStore } from '../../stores/usePlayerStore';
-import ProgressBar from '../../components/ui/ProgressBar';
+import { ProgressBar } from '../../components/ui/ProgressBar';
+import { getAttributeLevelProgress } from '../../lib/gameFormulas';
 
 interface AttributeDetailProps {
   attributeKey: AttributeKey;
 }
 
 const AttributeDetail: React.FC<AttributeDetailProps> = ({ attributeKey }) => {
-  const getAttributeProgress = usePlayerStore(s => s.getAttributeProgress);
+  const attributeExp = usePlayerStore(s => s.attributeExp);
   const info = ATTRIBUTE_MAP[attributeKey];
-  const progress = getAttributeProgress(attributeKey);
+  const progress = getAttributeLevelProgress(attributeExp[attributeKey]);
 
   return (
     <div className="flex flex-col gap-1.5 py-2">
@@ -27,7 +28,7 @@ const AttributeDetail: React.FC<AttributeDetailProps> = ({ attributeKey }) => {
           {progress.currentLevelExp} / {progress.nextLevelExp}
         </span>
       </div>
-      <ProgressBar value={progress.progress} color={info.color} height="h-1.5" />
+      <ProgressBar value={progress.progress} color={info.color} />
     </div>
   );
 };

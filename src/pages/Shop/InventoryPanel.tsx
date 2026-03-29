@@ -14,7 +14,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
   onToggle,
 }) => {
   const [tab, setTab] = useState<'item_shop' | 'stored_reward'>('item_shop');
-  const useInventoryItem = useShopStore((s) => s.useInventoryItem);
+  const useItem = useShopStore((s) => s.useItem);
 
   const filtered = inventory.filter((inv) => inv.item.category === tab);
 
@@ -62,7 +62,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
                   <p className="text-xs text-white/40 truncate mt-0.5">{inv.item.description}</p>
                 </div>
                 <button
-                  onClick={() => useInventoryItem(inv.id)}
+                  onClick={() => useItem(inv.id)}
                   className="ml-2 text-xs px-2 py-1 rounded-lg shrink-0"
                   style={{ background: 'rgba(100,181,246,0.2)', color: '#64B5F6', border: '1px solid rgba(100,181,246,0.3)' }}>
                   使用

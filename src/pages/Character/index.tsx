@@ -5,22 +5,22 @@ import {
 } from 'recharts';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { ATTRIBUTES } from '../../lib/constants';
-import GlassCard from '../../components/ui/GlassCard';
-import ProgressBar from '../../components/ui/ProgressBar';
+import { getAdventureLevelProgress, getAttributeLevelProgress } from '../../lib/gameFormulas';
+import { GlassCard } from '../../components/ui/GlassCard';
+import { ProgressBar } from '../../components/ui/ProgressBar';
 import AttributeDetail from './AttributeDetail';
 import EquipmentSlots from './EquipmentSlots';
 
 const CharacterPage: React.FC = () => {
   const playerName = usePlayerStore(s => s.playerName);
-  const currentTitle = usePlayerStore(s => s.currentTitle);
+  const getCurrentTitle = usePlayerStore(s => s.getCurrentTitle);
   const totalExp = usePlayerStore(s => s.totalExp);
-  const getAdventureProgress = usePlayerStore(s => s.getAdventureProgress);
-  const getAttributeProgress = usePlayerStore(s => s.getAttributeProgress);
+  const attributeExp = usePlayerStore(s => s.attributeExp);
 
-  const adventureProgress = getAdventureProgress();
+  const adventureProgress = getAdventureLevelProgress(totalExp);
 
   const radarData = ATTRIBUTES.map(attr => {
-    const prog = getAttributeProgress(attr.key);
+    const prog = getAttributeLevelProgress(attributeExp[attr.key]);
     return {
       subject: `${attr.emoji} ${attr.name}\nLv.${prog.level}`,
       value: prog.level,
@@ -103,7 +103,7 @@ const CharacterPage: React.FC = () => {
                   {playerName}
                 </h2>
                 <span className="text-sm font-medium" style={{ color: '#FFD54F' }}>
-                  {currentTitle}
+                  {getCurrentTitle()}
                 </span>
               </div>
               <div className="text-right">
@@ -116,7 +116,7 @@ const CharacterPage: React.FC = () => {
                 <span>总经验值 {totalExp}</span>
                 <span>{adventureProgress.currentLevelExp} / {adventureProgress.nextLevelExp}</span>
               </div>
-              <ProgressBar value={adventureProgress.progress} color="#FFD54F" height="h-2" />
+              <ProgressBar value={adventureProgress.progress} color="#FFD54F" />
             </div>
           </GlassCard>
 

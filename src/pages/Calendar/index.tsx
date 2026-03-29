@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import type { CalendarEvent, CalendarEventType, SemesterConfig } from '../../types';
-import { generateId } from '../../lib/gameFormulas';
 
 const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
@@ -62,7 +61,7 @@ export const CalendarPage: React.FC = () => {
     totalWeeks: 20,
   });
 
-  const { events, semesterConfig, addEvent, updateEvent, deleteEvent, setSemesterConfig, getEventsForDate } = useCalendarStore();
+  const { semesterConfig, addEvent, updateEvent, deleteEvent, setSemesterConfig, getEventsForDate } = useCalendarStore();
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);

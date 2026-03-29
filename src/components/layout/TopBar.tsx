@@ -2,8 +2,13 @@ import { usePlayerStore } from '../../stores/usePlayerStore';
 import { ProgressBar } from '../ui/ProgressBar';
 
 export function TopBar() {
-  const player = usePlayerStore((s) => s.player);
-  const staminaRatio = player.stamina / player.maxStamina;
+  const stamina = usePlayerStore((s) => s.stamina);
+  const maxStamina = usePlayerStore((s) => s.maxStamina);
+  const stardust = usePlayerStore((s) => s.stardust);
+  const playerName = usePlayerStore((s) => s.playerName);
+  const getAdventureLevel = usePlayerStore((s) => s.getAdventureLevel);
+  const getCurrentTitle = usePlayerStore((s) => s.getCurrentTitle);
+  const staminaRatio = maxStamina > 0 ? stamina / maxStamina : 0;
 
   return (
     <header
@@ -23,7 +28,7 @@ export function TopBar() {
           className="text-base font-bold"
           style={{ color: '#FFD54F' }}
         >
-          Lv.{player.adventureLevel}
+          Lv.{getAdventureLevel()}
         </span>
       </div>
 
@@ -34,7 +39,7 @@ export function TopBar() {
           <ProgressBar value={staminaRatio} color="#FF6B6B" />
         </div>
         <span className="text-xs text-gray-300 shrink-0">
-          {player.stamina}/{player.maxStamina}
+          {stamina}/{maxStamina}
         </span>
       </div>
 
@@ -42,15 +47,15 @@ export function TopBar() {
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-xs" style={{ color: '#64B5F6' }}>✦</span>
         <span className="text-sm font-semibold" style={{ color: '#64B5F6' }}>
-          {player.stardust}
+          {stardust}
         </span>
         <span className="text-xs text-gray-400">星尘</span>
       </div>
 
       {/* Player name / title */}
       <div className="ml-auto flex items-center gap-2">
-        <span className="text-xs text-gray-400">{player.currentTitle}</span>
-        <span className="text-sm text-gray-200">{player.playerName}</span>
+        <span className="text-xs text-gray-400">{getCurrentTitle()}</span>
+        <span className="text-sm text-gray-200">{playerName}</span>
       </div>
     </header>
   );

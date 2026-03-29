@@ -3,8 +3,8 @@ import type { TaskRarity, AttributeKey, TaskCycle } from '../../types';
 import { ATTRIBUTES, RARITY_CONFIGS, RARITY_MAP } from '../../lib/constants';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { generateId } from '../../lib/gameFormulas';
-import Modal from '../../components/ui/Modal';
-import Button from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface SubtaskDraft {
 }
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) => {
-  const addTask = useTaskStore(s => s.addTask);
+  const createTask = useTaskStore(s => s.createTask);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -80,7 +80,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         }))
       : undefined;
 
-    addTask({
+    createTask({
       title: title.trim(),
       description: description.trim() || undefined,
       element,
@@ -271,7 +271,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   onChange={e => setNewSubtask(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubtask())}
                 />
-                <Button type="button" size="sm" variant="ghost" onClick={addSubtask}>添加</Button>
+                <Button type="button" size="sm" variant="secondary" onClick={addSubtask}>添加</Button>
               </div>
             )}
           </div>
@@ -279,7 +279,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
         {/* Submit */}
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>取消</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>取消</Button>
           <Button type="submit" variant="primary" disabled={!title.trim()}>创建任务</Button>
         </div>
       </form>

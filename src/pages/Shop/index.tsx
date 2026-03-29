@@ -15,18 +15,21 @@ export const ShopPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ShopCategory>('instant_reward');
   const [inventoryCollapsed, setInventoryCollapsed] = useState(false);
 
-  const { getAllItems, inventory, buyItem, getPurchaseCount } = useShopStore();
-  const { player, spendStardust } = usePlayerStore();
+  const { customRewards, inventory, buyItem, monthlyPurchases } = useShopStore();
+  const stardust = usePlayerStore((s) => s.stardust);
 
-  const allItems = getAllItems();
-  const tabItems = allItems.filter((item) => item.category === activeTab);
+  const tabItems = customRewards.filter((item) => item.category === activeTab);
 
-  const handleBuy = (itemId: string) => {
-    const item = allItems.find((i) => i.id === itemId);
-    if (!item) return;
-    if (!spendStardust(item.price)) return;
-    buyItem(itemId, player.id);
+  const handleBuy = (item: typeof customRewards[number]) => {
+    buyItem(item);
   };
+
+  function getPurchaseCount(itemId: string): number {
+    const d = new Date();
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const purchaseKey = `${monthKey}:${itemId}`;
+    return monthlyPurchases[purchaseKey] ?? 0;
+  }
 
   return (
     <div className="flex h-full gap-4 p-4" style={{ background: 'linear-gradient(135deg, #0a0a1a, #1a0a2e)', minHeight: '100vh' }}>
@@ -38,7 +41,7 @@ export const ShopPage: React.FC = () => {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
             style={{ background: 'rgba(255,213,79,0.1)', border: '1px solid rgba(255,213,79,0.3)' }}>
             <span style={{ color: '#FFD54F' }}>✦</span>
-            <span className="text-sm font-bold" style={{ color: '#FFD54F' }}>{player.stardust}</span>
+            <span className="text-sm font-bold" style={{ color: '#FFD54F' }}>{stardust}</span>
             <span className="text-xs text-white/50">星尘</span>
           </div>
         </div>
@@ -76,8 +79,8 @@ export const ShopPage: React.FC = () => {
                 key={item.id}
                 item={item}
                 purchaseCount={getPurchaseCount(item.id)}
-                canAfford={player.stardust >= item.price}
-                onBuy={() => handleBuy(item.id)}
+                canAfford={stardust >= item.price}
+                onBuy={() => handleBuy(item)}
               />
             ))}
           </div>

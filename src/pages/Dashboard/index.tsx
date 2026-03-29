@@ -32,7 +32,7 @@ const BossStatusPlaceholder: React.FC = () => {
             <span>Boss血量</span>
             <span>3/5 周常任务</span>
           </div>
-          <ProgressBar value={60} color="#FF6B6B" height={8} />
+          <ProgressBar value={60} color="#FF6B6B"  />
         </div>
       </div>
     </GlassCard>
@@ -45,7 +45,7 @@ const PlayerHeader: React.FC = () => {
   const stardust = usePlayerStore((s) => s.stardust);
   const stamina = usePlayerStore((s) => s.stamina);
   const maxStamina = usePlayerStore((s) => s.maxStamina);
-  const currentTitle = usePlayerStore((s) => s.currentTitle);
+  const getCurrentTitle = usePlayerStore((s) => s.getCurrentTitle);
 
   const { level, currentLevelExp, nextLevelExp, progress } = getAdventureLevelProgress(totalExp);
 
@@ -68,7 +68,7 @@ const PlayerHeader: React.FC = () => {
               className="text-xs px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(255,213,79,0.1)', color: 'rgba(255,213,79,0.8)', border: '1px solid rgba(255,213,79,0.2)' }}
             >
-              {currentTitle}
+              {getCurrentTitle()}
             </span>
           </div>
           <div className="flex items-center gap-1 mt-1">
@@ -78,7 +78,7 @@ const PlayerHeader: React.FC = () => {
             </span>
           </div>
           <div className="mt-1.5">
-            <ProgressBar value={progress * 100} color="#FFD54F" height={4} />
+            <ProgressBar value={progress * 100} color="#FFD54F"  />
           </div>
         </div>
 
@@ -121,7 +121,7 @@ const GoalProgress: React.FC = () => {
               <span style={{ color: 'rgba(255,255,255,0.7)' }}>{goal.title}</span>
               <span style={{ color: goal.color }}>{goal.progress}%</span>
             </div>
-            <ProgressBar value={goal.progress} color={goal.color} height={5} />
+            <ProgressBar value={goal.progress} color={goal.color}  />
           </div>
         ))}
       </div>

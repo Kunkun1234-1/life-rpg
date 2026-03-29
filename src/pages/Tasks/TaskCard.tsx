@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Task } from '../../types';
 import { ATTRIBUTE_MAP, RARITY_MAP } from '../../lib/constants';
 import { useTaskStore } from '../../stores/useTaskStore';
-import GlassCard from '../../components/ui/GlassCard';
-import Button from '../../components/ui/Button';
-import ProgressBar from '../../components/ui/ProgressBar';
+import { GlassCard } from '../../components/ui/GlassCard';
+import { Button } from '../../components/ui/Button';
+import { ProgressBar } from '../../components/ui/ProgressBar';
 
 interface TaskCardProps {
   task: Task;
@@ -119,7 +119,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
               <ProgressBar
                 value={subtasks.length > 0 ? completedSubtasks / subtasks.length : 0}
                 color={rarityConfig.color}
-                height="h-1.5"
               />
             </div>
           )}

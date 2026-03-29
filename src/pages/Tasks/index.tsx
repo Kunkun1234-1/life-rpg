@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../../stores/useTaskStore';
 import TaskCard from './TaskCard';
 import CreateTaskModal from './CreateTaskModal';
-import Button from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
 
 type FilterTab = 'active' | 'epic_legend' | 'history';
 
@@ -17,15 +17,13 @@ const TasksPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FilterTab>('active');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const getActiveTasks = useTaskStore(s => s.getActiveTasks);
-  const getHistoryTasks = useTaskStore(s => s.getHistoryTasks);
-  const getEpicLegendTasks = useTaskStore(s => s.getEpicLegendTasks);
+  const allTasks = useTaskStore(s => s.tasks);
 
   const tasks = activeTab === 'active'
-    ? getActiveTasks()
+    ? allTasks.filter(t => t.status === 'pending')
     : activeTab === 'epic_legend'
-      ? getEpicLegendTasks()
-      : getHistoryTasks();
+      ? allTasks.filter(t => t.rarity >= 4)
+      : allTasks.filter(t => t.status === 'completed');
 
   return (
     <div

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { usePrincipleStore } from '../../stores/usePrincipleStore';
 import { SYSTEM_PRINCIPLES, ATTRIBUTES } from '../../lib/constants';
-import type { Principle, DecisionLog, Goal, GoalType, GoalStatus, AttributeKey } from '../../types';
-import { generateId } from '../../lib/gameFormulas';
+import type { Principle, DecisionLog, Goal, GoalType, AttributeKey } from '../../types';
 
 type PrincipleTab = 'system' | 'my' | 'logs' | 'goals' | 'review';
 
