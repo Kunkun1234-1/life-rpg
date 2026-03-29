@@ -11,6 +11,7 @@ import { GlassCard } from '../../components/ui/GlassCard';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import AttributeDetail from './AttributeDetail';
 import EquipmentSlots from './EquipmentSlots';
+import AchievementWall from './AchievementWall';
 
 const BreakthroughPanel: React.FC<{ adventureLevel: number; attributeExp: Record<string, number> }> = ({ adventureLevel, attributeExp }) => {
   const tasks = useTaskStore((s) => s.tasks);
@@ -63,6 +64,7 @@ const CharacterPage: React.FC = () => {
   const getCurrentTitle = usePlayerStore(s => s.getCurrentTitle);
   const totalExp = usePlayerStore(s => s.totalExp);
   const attributeExp = usePlayerStore(s => s.attributeExp);
+  const achievementPoints = usePlayerStore(s => s.achievementPoints);
 
   const adventureProgress = getAdventureLevelProgress(totalExp);
 
@@ -156,6 +158,7 @@ const CharacterPage: React.FC = () => {
               <div className="text-right">
                 <div className="text-2xl font-bold text-white">Lv.{adventureProgress.level}</div>
                 <div className="text-xs text-white/40">冒险等级</div>
+                <div className="text-xs mt-1" style={{ color: '#CE93D8' }}>🏅 {achievementPoints} 成就点</div>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -189,6 +192,18 @@ const CharacterPage: React.FC = () => {
           />
         </motion.div>
       </div>
+
+      {/* Achievement Wall - full width below */}
+      <motion.div
+        className="mt-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <GlassCard className="p-5">
+          <AchievementWall />
+        </GlassCard>
+      </motion.div>
     </div>
   );
 };
