@@ -1,23 +1,24 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAchievementStore } from '../../stores/useAchievementStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
-import { ACHIEVEMENT_UNLOCKS } from '../../lib/constants';
+import { ACHIEVEMENT_UNLOCKS, ACHIEVEMENT_CATEGORIES } from '../../lib/constants';
 import { GlassCard } from '../../components/ui/GlassCard';
 
-const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
-  milestone: { label: '里程碑', icon: '🏆' },
-  streak: { label: '坚持', icon: '🔥' },
-  attribute: { label: '属性', icon: '💎' },
-  task: { label: '任务', icon: '⚔️' },
-  special: { label: '特殊', icon: '✨' },
-};
+const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = Object.fromEntries(
+  ACHIEVEMENT_CATEGORIES.map((c) => [c.key, { label: c.label, icon: c.icon }])
+);
 
 export default function AchievementWall() {
+  const navigate = useNavigate();
   const achievements = useAchievementStore((s) => s.achievements);
   const achievementPoints = usePlayerStore((s) => s.achievementPoints);
 
-  const unlocked = achievements.filter((a) => a.unlockedAt);
-  const locked = achievements.filter((a) => !a.unlockedAt);
+  const unlocked = achievements
+    .filter((a) => a.unlockedAt)
+    .sort((a, b) => (b.unlockedAt ?? '').localeCompare(a.unlockedAt ?? ''))
+    .slice(0, 6);
+  const totalUnlocked = achievements.filter((a) => a.unlockedAt).length;
 
   // Next unlock threshold
   const nextUnlock = ACHIEVEMENT_UNLOCKS.find((u) => achievementPoints < u.points);
@@ -70,13 +71,24 @@ export default function AchievementWall() {
         </div>
       )}
 
-      {/* Unlocked achievements */}
+      {/* 6 most recently unlocked achievements */}
       {unlocked.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-white/40">已达成 ({unlocked.length})</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-white/40">最近达成 ({totalUnlocked})</p>
+            {totalUnlocked > 6 && (
+              <button
+                onClick={() => navigate('/achievements')}
+                className="text-xs transition-colors"
+                style={{ color: '#FFD54F', opacity: 0.7 }}
+              >
+                更多...
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-2">
             {unlocked.map((a, i) => {
-              const cat = CATEGORY_LABELS[a.category] ?? CATEGORY_LABELS.special;
+              const cat = CATEGORY_LABELS[a.category] ?? { label: '特殊', icon: '✨' };
               return (
                 <motion.div
                   key={a.id}
@@ -112,42 +124,6 @@ export default function AchievementWall() {
                     </div>
                   </GlassCard>
                 </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Locked achievements */}
-      {locked.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-white/40">未达成 ({locked.length})</p>
-          <div className="grid grid-cols-1 gap-2">
-            {locked.map((a) => {
-              const cat = CATEGORY_LABELS[a.category] ?? CATEGORY_LABELS.special;
-              return (
-                <div
-                  key={a.id}
-                  className="rounded-xl p-3 flex items-start gap-3"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 opacity-30"
-                    style={{ background: 'rgba(255,255,255,0.05)' }}
-                  >
-                    {cat.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white/30">{a.name}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded text-white/20" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                        +{a.points}
-                      </span>
-                    </div>
-                    <p className="text-xs text-white/20 mt-0.5">{a.description}</p>
-                  </div>
-                  <span className="text-xs text-white/15 flex-shrink-0">🔒</span>
-                </div>
               );
             })}
           </div>
