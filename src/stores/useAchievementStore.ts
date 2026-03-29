@@ -23,10 +23,22 @@ interface ConditionResult {
   max?: number;
 }
 
+interface CreateCustomAchievement {
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  rewardTier: 'normal' | 'rare' | 'legendary';
+}
+
+const TIER_REWARDS = { normal: { points: 1, stardust: 20 }, rare: { points: 3, stardust: 80 }, legendary: { points: 5, stardust: 200 } };
+
 interface AchievementStore {
   achievements: Achievement[];
   checkAndUnlock: () => void;
   getByCategory: (cat: AchievementCategory) => Achievement[];
+  createCustom: (data: CreateCustomAchievement) => void;
+  deleteCustom: (id: string) => void;
+  manualUnlock: (id: string) => void;
 }
 
 export const useAchievementStore = create<AchievementStore>()(
@@ -267,6 +279,41 @@ export const useAchievementStore = create<AchievementStore>()(
       },
 
       getByCategory: (cat) => get().achievements.filter((a) => a.category === cat),
+
+      createCustom: (data) => {
+        const rewards = TIER_REWARDS[data.rewardTier];
+        const newAchievement: Achievement = {
+          id: `custom-${crypto.randomUUID()}`,
+          key: `custom_${Date.now()}`,
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          points: rewards.points,
+          stardustReward: rewards.stardust,
+          rewardTier: data.rewardTier,
+          visibility: 'visible',
+          condition: 'custom',
+        };
+        set((state) => ({ achievements: [...state.achievements, newAchievement] }));
+      },
+
+      deleteCustom: (id) => {
+        if (!id.startsWith('custom-')) return;
+        set((state) => ({ achievements: state.achievements.filter((a) => a.id !== id) }));
+      },
+
+      manualUnlock: (id) => {
+        const achievement = get().achievements.find((a) => a.id === id);
+        if (!achievement || achievement.unlockedAt) return;
+        const player = usePlayerStore.getState();
+        player.addAchievementPoints(achievement.points);
+        player.addStardust(achievement.stardustReward);
+        set((state) => ({
+          achievements: state.achievements.map((a) =>
+            a.id === id ? { ...a, unlockedAt: new Date().toISOString() } : a
+          ),
+        }));
+      },
     }),
     {
       name: 'life-rpg-achievements',
