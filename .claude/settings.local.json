@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/usr/bin/python3 -c \"\nfrom docx import Document\ndoc = Document\\('/home/wangkun/Downloads/gmaelife/Life-RPG-完整系统设计文档-v2.0.docx'\\)\nfor i, table in enumerate\\(doc.tables\\):\n    print\\(f'=== Table {i+1} ==='\\)\n    for row in table.rows:\n        cells = [cell.text.strip\\(\\).replace\\('\\\\n', ' | '\\) for cell in row.cells]\n        print\\('\\\\t'.join\\(cells\\)\\)\n    print\\(\\)\n\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(/usr/bin/git --version)",
+      "Bash(/usr/bin/env git:*)"
+    ]
+  }
+}
