@@ -273,8 +273,10 @@ export const useAchievementStore = create<AchievementStore>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const full = buildInitialAchievements();
-        if (state.achievements.length < full.length) {
-          // Preserve unlockedAt for matching keys during migration
+        // Always rebuild if length mismatch OR if data is missing new fields (rewardTier)
+        const needsMigration = state.achievements.length !== full.length
+          || state.achievements.some((a) => !a.rewardTier || !a.visibility);
+        if (needsMigration) {
           const unlockedMap: Record<string, string> = {};
           for (const a of state.achievements) {
             if (a.unlockedAt) unlockedMap[a.key] = a.unlockedAt;

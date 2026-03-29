@@ -136,7 +136,7 @@ const AchievementsPage: React.FC = () => {
           {categoryAchievements.map((a, i) => {
             const isUnlocked = !!a.unlockedAt;
             const isHidden = !isUnlocked && a.visibility === 'hidden';
-            const tierStyle = TIER_STYLES[a.rewardTier];
+            const tierStyle = TIER_STYLES[a.rewardTier] ?? TIER_STYLES.normal;
             const catInfo = ACHIEVEMENT_CATEGORIES.find((c) => c.key === a.category);
 
             if (isUnlocked) {
