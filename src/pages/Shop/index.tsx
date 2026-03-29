@@ -3,7 +3,8 @@ import { ShopItemCard } from './ShopItemCard';
 import { InventoryPanel } from './InventoryPanel';
 import { useShopStore } from '../../stores/useShopStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
-import type { ShopCategory } from '../../types';
+import { PERMANENT_SHOP_ITEMS, ROTATING_SHOP_ITEMS } from '../../lib/constants';
+import type { ShopCategory, ShopItem } from '../../types';
 
 const TAB_LABELS: { key: ShopCategory; label: string }[] = [
   { key: 'instant_reward', label: '即时奖励' },
@@ -18,9 +19,21 @@ export const ShopPage: React.FC = () => {
   const { customRewards, inventory, buyItem, monthlyPurchases } = useShopStore();
   const stardust = usePlayerStore((s) => s.stardust);
 
-  const tabItems = customRewards.filter((item) => item.category === activeTab);
+  const systemItems: ShopItem[] = [...PERMANENT_SHOP_ITEMS, ...ROTATING_SHOP_ITEMS].map((item, i) => ({
+    ...item,
+    id: `system-${i}`,
+  }));
 
-  const handleBuy = (item: typeof customRewards[number]) => {
+  const getTabItems = (): ShopItem[] => {
+    if (activeTab === 'item_shop') {
+      return systemItems.filter(item => item.category === 'item_shop');
+    }
+    return customRewards.filter(item => item.category === activeTab);
+  };
+
+  const tabItems = getTabItems();
+
+  const handleBuy = (item: ShopItem) => {
     buyItem(item);
   };
 
@@ -65,24 +78,79 @@ export const ShopPage: React.FC = () => {
 
         {/* Items Grid */}
         {tabItems.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2">
             <p className="text-white/30 text-sm">
               {activeTab === 'instant_reward' || activeTab === 'stored_reward'
-                ? '此分类暂无商品，可在道具商店购买后存储'
+                ? '此分类暂无自定义奖励'
                 : '暂无商品'}
             </p>
+            {(activeTab === 'instant_reward' || activeTab === 'stored_reward') && (
+              <button
+                onClick={() => {/* TODO: open add reward modal */}}
+                className="mt-2 px-4 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,213,79,0.15)', color: '#FFD54F', border: '1px solid rgba(255,213,79,0.3)' }}
+              >
+                + 添加自定义奖励
+              </button>
+            )}
+          </div>
+        ) : activeTab === 'item_shop' ? (
+          <div className="space-y-4">
+            {/* Permanent items section */}
+            {tabItems.filter(item => !item.isRotating).length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,213,79,0.6)' }}>常驻道具</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {tabItems.filter(item => !item.isRotating).map((item) => (
+                    <ShopItemCard
+                      key={item.id}
+                      item={item}
+                      purchaseCount={getPurchaseCount(item.id)}
+                      canAfford={stardust >= item.price}
+                      onBuy={() => handleBuy(item)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Rotating items section */}
+            {tabItems.filter(item => item.isRotating).length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgba(206,147,216,0.7)' }}>轮换道具</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {tabItems.filter(item => item.isRotating).map((item) => (
+                    <ShopItemCard
+                      key={item.id}
+                      item={item}
+                      purchaseCount={getPurchaseCount(item.id)}
+                      canAfford={stardust >= item.price}
+                      onBuy={() => handleBuy(item)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {tabItems.map((item) => (
-              <ShopItemCard
-                key={item.id}
-                item={item}
-                purchaseCount={getPurchaseCount(item.id)}
-                canAfford={stardust >= item.price}
-                onBuy={() => handleBuy(item)}
-              />
-            ))}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {tabItems.map((item) => (
+                <ShopItemCard
+                  key={item.id}
+                  item={item}
+                  purchaseCount={getPurchaseCount(item.id)}
+                  canAfford={stardust >= item.price}
+                  onBuy={() => handleBuy(item)}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => {/* TODO: open add reward modal */}}
+              className="px-4 py-2 rounded-lg text-sm"
+              style={{ background: 'rgba(255,213,79,0.15)', color: '#FFD54F', border: '1px solid rgba(255,213,79,0.3)' }}
+            >
+              + 添加自定义奖励
+            </button>
           </div>
         )}
       </div>

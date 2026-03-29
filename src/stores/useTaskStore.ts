@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Task, TaskCompletion, AttributeKey } from '../types';
 import { calculateTaskReward, calculateSubtaskReward, calculateStaminaCost } from '../lib/gameFormulas';
 import { usePlayerStore } from './usePlayerStore';
+import { useEquipmentStore } from './useEquipmentStore';
 
 interface CreateTaskData {
   title: string;
@@ -83,7 +84,7 @@ export const useTaskStore = create<TaskStore>()(
             isFirstCompletion: task.isFirstCompletion,
             isOverachieve,
             isOverdraft,
-            equipmentBonus: 0,
+            equipmentBonus: useEquipmentStore.getState().getEquippedBonus(task.element),
             expBoostActive: false,
             stardustBoostActive: false,
           }

@@ -38,7 +38,7 @@ const StarRating: React.FC<{ rarity: number }> = ({ rarity }) => {
 const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const [expanded, setExpanded] = useState(false);
   const completeTask = useTaskStore(s => s.completeTask);
-  const updateTask = useTaskStore(s => s.updateTask);
+  const completeSubtask = useTaskStore(s => s.completeSubtask);
 
   const attrInfo = ATTRIBUTE_MAP[task.element];
   const rarityConfig = RARITY_MAP[task.rarity];
@@ -50,10 +50,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const hasSubtasks = (task.rarity === 4 || task.rarity === 5) && subtasks.length > 0;
 
   const handleCompleteSubtask = (subtaskId: string) => {
-    const updated = subtasks.map(s =>
-      s.id === subtaskId ? { ...s, status: 'completed' as const } : s
-    );
-    updateTask(task.id, { subtasks: updated });
+    completeSubtask(task.id, subtaskId);
   };
 
   return (

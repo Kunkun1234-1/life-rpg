@@ -113,8 +113,8 @@ export function BossStatus({
   weeklyTasksCompleted = 0,
 }: BossStatusProps) {
   const { getActiveBosses, defeatBoss } = useBossStore();
-  const addExp = (usePlayerStore as any)((s: any) => s.addExp);
-  const addStardust = (usePlayerStore as any)((s: any) => s.addStardust);
+  const addExp = usePlayerStore((s) => s.addExp);
+  const addStardust = usePlayerStore((s) => s.addStardust);
 
   const [defeatAnim, setDefeatAnim] = useState<{
     show: boolean;
@@ -127,8 +127,11 @@ export function BossStatus({
   const handleDefeat = (boss: Boss) => {
     const result = defeatBoss(boss.id);
     if (!result) return;
-    addExp?.(result.exp);
-    addStardust?.(result.stardust);
+    // Distribute boss rewards evenly across boss's attribute keys
+    const bossAttrs = boss.attributeKeys.length > 0 ? boss.attributeKeys : ['mind' as const];
+    const expPerAttr = Math.round(result.exp / bossAttrs.length);
+    bossAttrs.forEach(attr => addExp(expPerAttr, attr));
+    addStardust(result.stardust);
     setDefeatAnim({
       show: true,
       bossName: boss.name,

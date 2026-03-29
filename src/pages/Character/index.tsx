@@ -4,12 +4,59 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip,
 } from 'recharts';
 import { usePlayerStore } from '../../stores/usePlayerStore';
-import { ATTRIBUTES } from '../../lib/constants';
-import { getAdventureLevelProgress, getAttributeLevelProgress } from '../../lib/gameFormulas';
+import { useTaskStore } from '../../stores/useTaskStore';
+import { ATTRIBUTES, BREAKTHROUGHS } from '../../lib/constants';
+import { getAdventureLevelProgress, getAttributeLevelProgress, getAttributeLevel } from '../../lib/gameFormulas';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import AttributeDetail from './AttributeDetail';
 import EquipmentSlots from './EquipmentSlots';
+
+const BreakthroughPanel: React.FC<{ adventureLevel: number; attributeExp: Record<string, number> }> = ({ adventureLevel, attributeExp }) => {
+  const tasks = useTaskStore((s) => s.tasks);
+  const completedEpic = tasks.filter(t => t.status === 'completed' && t.rarity >= 4).length;
+  const completedLegend = tasks.filter(t => t.status === 'completed' && t.rarity >= 5).length;
+  const attrLevels = Object.values(attributeExp).map(exp => getAttributeLevel(exp));
+  const minAttrLevel = Math.min(...attrLevels);
+  const attrAbove = (lvl: number) => attrLevels.filter(l => l >= lvl).length;
+
+  // Find current breakthrough
+  const nextBreakthrough = BREAKTHROUGHS.find(b => adventureLevel < b.level || adventureLevel === b.level);
+  if (!nextBreakthrough) return null;
+
+  const isAtBreakthrough = adventureLevel >= nextBreakthrough.level;
+  let conditionMet = false;
+  if (nextBreakthrough.level === 10) conditionMet = attrAbove(3) >= 3;
+  else if (nextBreakthrough.level === 20) conditionMet = completedEpic >= 1 && attrAbove(5) >= 4;
+  else if (nextBreakthrough.level === 30) conditionMet = minAttrLevel >= 7 && completedEpic >= 3;
+  else if (nextBreakthrough.level === 40) conditionMet = completedLegend >= 1 && minAttrLevel >= 10;
+
+  return (
+    <GlassCard className="p-5" style={{ border: isAtBreakthrough ? '1px solid rgba(255,213,79,0.3)' : undefined }}>
+      <h3 className="text-sm font-bold text-white/60 uppercase tracking-widest mb-2">突破任务</h3>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white">Lv.{nextBreakthrough.level} 突破</span>
+          {isAtBreakthrough && conditionMet && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,213,79,0.2)', color: '#FFD54F' }}>
+              可突破
+            </span>
+          )}
+          {isAtBreakthrough && !conditionMet && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,107,107,0.2)', color: '#FF6B6B' }}>
+              条件未满足
+            </span>
+          )}
+          {!isAtBreakthrough && (
+            <span className="text-xs text-white/30">Lv.{nextBreakthrough.level} 时解锁</span>
+          )}
+        </div>
+        <p className="text-xs text-white/50">{nextBreakthrough.condition}</p>
+        <p className="text-xs text-white/30">{nextBreakthrough.description}</p>
+      </div>
+    </GlassCard>
+  );
+};
 
 const CharacterPage: React.FC = () => {
   const playerName = usePlayerStore(s => s.playerName);
@@ -134,6 +181,12 @@ const CharacterPage: React.FC = () => {
           <GlassCard className="p-5">
             <EquipmentSlots />
           </GlassCard>
+
+          {/* Breakthrough Status */}
+          <BreakthroughPanel
+            adventureLevel={adventureProgress.level}
+            attributeExp={attributeExp}
+          />
         </motion.div>
       </div>
     </div>

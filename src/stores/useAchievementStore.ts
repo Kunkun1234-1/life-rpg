@@ -13,7 +13,7 @@ interface AchievementStore {
 
 const initialAchievements: Achievement[] = DEFAULT_ACHIEVEMENTS.map((a) => ({
   ...a,
-  id: crypto.randomUUID(),
+  id: `achievement-${a.key}`,
 }));
 
 export const useAchievementStore = create<AchievementStore>()(

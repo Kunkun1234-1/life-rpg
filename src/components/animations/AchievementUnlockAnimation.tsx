@@ -4,7 +4,7 @@ import type { Achievement } from '../../types';
 
 interface AchievementUnlockAnimationProps {
   show: boolean;
-  achievement: Achievement | null;
+  achievement: Pick<Achievement, 'name' | 'description' | 'points'> | null;
   onDismiss?: () => void;
 }
 

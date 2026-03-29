@@ -14,7 +14,7 @@ interface ActionItem {
 const ACTIONS: ActionItem[] = [
   { icon: '✦', label: '创建任务', to: '/tasks', color: '#FFD54F' },
   { icon: '🛒', label: '商城', to: '/shop', color: '#64B5F6' },
-  { icon: '🎒', label: '使用道具', color: '#CE93D8' },
+  { icon: '🎒', label: '使用道具', to: '/shop', color: '#CE93D8' },
   { icon: '📅', label: '日历', to: '/calendar', color: '#81C784' },
 ];
 

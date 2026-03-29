@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { usePrincipleStore } from '../../stores/usePrincipleStore';
+import { usePlayerStore } from '../../stores/usePlayerStore';
+import { useTaskStore } from '../../stores/useTaskStore';
+import { useAchievementStore } from '../../stores/useAchievementStore';
 import { SYSTEM_PRINCIPLES, ATTRIBUTES } from '../../lib/constants';
+import { getAttributeLevel } from '../../lib/gameFormulas';
 import type { Principle, DecisionLog, Goal, GoalType, AttributeKey } from '../../types';
 
 type PrincipleTab = 'system' | 'my' | 'logs' | 'goals' | 'review';
@@ -397,52 +401,88 @@ const GoalsTab: React.FC = () => {
   );
 };
 
-// --- Review Report Tab (placeholder) ---
-const ReviewReportTab: React.FC = () => (
-  <div className="flex flex-col gap-4">
-    <div className="rounded-xl p-5"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <h3 className="text-sm font-bold text-white mb-3">2026年第12周 周报</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: '任务完成率', value: '78%', color: '#81C784' },
-          { label: '获得星尘', value: '1,240 ✦', color: '#FFD54F' },
-          { label: '连续天数', value: '5 天', color: '#64B5F6' },
-          { label: '解锁成就', value: '2 个', color: '#CE93D8' },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg p-3 text-center"
-            style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${stat.color}22` }}>
-            <div className="text-lg font-bold" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="text-xs text-white/50 mt-1">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-    <div className="rounded-xl p-5"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <h3 className="text-sm font-bold text-white mb-3">属性经验增长</h3>
-      <div className="flex flex-col gap-2">
-        {[
-          { key: 'body', label: '体魄', emoji: '🔥', color: '#FF6B6B', gain: 240 },
-          { key: 'mind', label: '心智', emoji: '❄️', color: '#64B5F6', gain: 380 },
-          { key: 'craft', label: '技艺', emoji: '⚡', color: '#FFD54F', gain: 560 },
-          { key: 'social', label: '社交', emoji: '🌿', color: '#81C784', gain: 120 },
-          { key: 'spirit', label: '心灵', emoji: '💫', color: '#CE93D8', gain: 180 },
-          { key: 'wealth', label: '财务', emoji: '🔶', color: '#FFB74D', gain: 80 },
-        ].map(attr => (
-          <div key={attr.key} className="flex items-center gap-3">
-            <span className="text-sm w-16">{attr.emoji} {attr.label}</span>
-            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full rounded-full" style={{ width: `${(attr.gain / 600) * 100}%`, background: attr.color }} />
+// --- Review Report Tab (real data) ---
+const ReviewReportTab: React.FC = () => {
+  const tasks = useTaskStore((s) => s.tasks);
+  const completions = useTaskStore((s) => s.completions);
+  const streakDays = usePlayerStore((s) => s.streakDays);
+  const stardust = usePlayerStore((s) => s.stardust);
+  const attributeExp = usePlayerStore((s) => s.attributeExp);
+  const achievements = useAchievementStore((s) => s.achievements);
+
+  // Current week number
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+
+  // Completion rate
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // This month's stardust earned
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthlyStardust = completions
+    .filter(c => c.completedAt >= monthStart)
+    .reduce((sum, c) => sum + c.stardustEarned, 0);
+
+  // Unlocked achievements
+  const unlockedCount = achievements.filter(a => a.unlockedAt).length;
+
+  // Max attribute exp for scaling bars
+  const maxAttrExp = Math.max(...Object.values(attributeExp), 1);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-xl p-5"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <h3 className="text-sm font-bold text-white mb-3">{now.getFullYear()}年第{weekNum}周 周报</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: '任务完成率', value: `${completionRate}%`, color: '#81C784' },
+            { label: '本月星尘', value: `${monthlyStardust.toLocaleString()} ✦`, color: '#FFD54F' },
+            { label: '连续天数', value: `${streakDays} 天`, color: '#64B5F6' },
+            { label: '已解锁成就', value: `${unlockedCount} 个`, color: '#CE93D8' },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-lg p-3 text-center"
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${stat.color}22` }}>
+              <div className="text-lg font-bold" style={{ color: stat.color }}>{stat.value}</div>
+              <div className="text-xs text-white/50 mt-1">{stat.label}</div>
             </div>
-            <span className="text-xs w-12 text-right" style={{ color: attr.color }}>+{attr.gain}</span>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+      <div className="rounded-xl p-5"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <h3 className="text-sm font-bold text-white mb-3">属性经验累积</h3>
+        <div className="flex flex-col gap-2">
+          {ATTRIBUTES.map(attr => {
+            const exp = attributeExp[attr.key] ?? 0;
+            const level = getAttributeLevel(exp);
+            return (
+              <div key={attr.key} className="flex items-center gap-3">
+                <span className="text-sm w-20">{attr.emoji} {attr.name} Lv.{level}</span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.max((exp / maxAttrExp) * 100, 2)}%`, background: attr.color }} />
+                </div>
+                <span className="text-xs w-16 text-right" style={{ color: attr.color }}>{exp.toLocaleString()} EXP</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="rounded-xl p-5"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <h3 className="text-sm font-bold text-white mb-3">反思引导</h3>
+        <div className="flex flex-col gap-2 text-sm text-white/60">
+          <p>- 哪些任务经常跳过？下周需要调整什么？</p>
+          <p>- 阶段目标进展如何？哪个属性被忽略了？</p>
+          <p>- 当前星尘余额: <span style={{ color: '#FFD54F' }}>{stardust.toLocaleString()} ✦</span></p>
+        </div>
       </div>
     </div>
-    <p className="text-xs text-white/20 text-center">完整报告功能将在连接数据后自动生成</p>
-  </div>
-);
+  );
+};
 
 // --- Main Principles Page ---
 export const PrinciplesPage: React.FC = () => {
