@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { TaskRarity, AttributeKey, TaskCycle } from '../../types';
 import { ATTRIBUTES, RARITY_CONFIGS, RARITY_MAP } from '../../lib/constants';
 import { useTaskStore } from '../../stores/useTaskStore';
+import { useMainlineStore } from '../../stores/useMainlineStore';
 import { generateId } from '../../lib/gameFormulas';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
@@ -18,6 +19,7 @@ interface SubtaskDraft {
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) => {
   const createTask = useTaskStore(s => s.createTask);
+  const activeMainlines = useMainlineStore(s => s.getActiveMainlines)();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -27,6 +29,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const [baseStardust, setBaseStardust] = useState(8);
   const [staminaCost, setStaminaCost] = useState(12);
   const [deadline, setDeadline] = useState('');
+  const [mainlineId, setMainlineId] = useState('');
   const [subtasks, setSubtasks] = useState<SubtaskDraft[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
 
@@ -90,6 +93,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       baseStardust,
       staminaCost,
       deadline: deadline || undefined,
+      mainlineId: mainlineId || undefined,
       subtasks: subtaskTasks,
     });
 
@@ -102,6 +106,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     setBaseStardust(8);
     setStaminaCost(12);
     setDeadline('');
+    setMainlineId('');
     setSubtasks([]);
     onClose();
   };
@@ -238,6 +243,24 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               onChange={e => setDeadline(e.target.value)}
               style={{ colorScheme: 'dark' }}
             />
+          </div>
+        )}
+
+        {/* Mainline Association */}
+        {activeMainlines.length > 0 && (
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">关联主线（可选）</label>
+            <select
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+              value={mainlineId}
+              onChange={e => setMainlineId(e.target.value)}
+              style={{ colorScheme: 'dark' }}
+            >
+              <option value="">不关联主线</option>
+              {activeMainlines.map(m => (
+                <option key={m.id} value={m.id}>{m.title}</option>
+              ))}
+            </select>
           </div>
         )}
 
