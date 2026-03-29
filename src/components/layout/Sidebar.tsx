@@ -12,6 +12,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/tasks', icon: '📋', label: '任务' },
   { to: '/shop', icon: '🏪', label: '商城' },
   { to: '/calendar', icon: '📅', label: '日历' },
+  { to: '/achievements', icon: '🏆', label: '成就' },
   { to: '/principles', icon: '📖', label: '原则' },
 ];
 

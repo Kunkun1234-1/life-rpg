@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { useCalendarStore } from '../../stores/useCalendarStore';
+import { usePlayerStore } from '../../stores/usePlayerStore';
+import { ProgressBar } from '../../components/ui/ProgressBar';
 import type { CalendarEvent, CalendarEventType, SemesterConfig } from '../../types';
 
 const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
-  course: '课程',
-  schedule: '日程',
-  note: '备注',
-};
 const EVENT_TYPE_COLORS: Record<CalendarEventType, string> = {
   course: '#64B5F6',
-  schedule: '#81C784',
-  note: '#CE93D8',
+  schedule: '#FFB74D',
+  note: '#FF6B6B',
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -45,6 +42,41 @@ const EMPTY_EVENT: Omit<CalendarEvent, 'id'> = {
   date: '',
 };
 
+function CollapsibleSection({
+  title,
+  count,
+  color,
+  children,
+}: {
+  title: string;
+  count: number;
+  color: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between mb-1.5"
+      >
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+          <span className="text-xs font-semibold text-white/70">{title}</span>
+          <span
+            className="text-xs px-1.5 py-0.5 rounded-full"
+            style={{ background: `${color}22`, color }}
+          >
+            {count}
+          </span>
+        </div>
+        <span className="text-white/30 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="flex flex-col gap-2">{children}</div>}
+    </div>
+  );
+}
+
 export const CalendarPage: React.FC = () => {
   const today = new Date().toISOString().slice(0, 10);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -62,6 +94,7 @@ export const CalendarPage: React.FC = () => {
   });
 
   const { semesterConfig, addEvent, updateEvent, deleteEvent, setSemesterConfig, getEventsForDate } = useCalendarStore();
+  const { stamina, maxStamina } = usePlayerStore();
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -105,15 +138,55 @@ export const CalendarPage: React.FC = () => {
   };
 
   const selectedDayEvents = getEventsForDate(selectedDate);
+  const selectedCourses = selectedDayEvents.filter(e => e.eventType === 'course');
+  const selectedSchedules = selectedDayEvents.filter(e => e.eventType === 'schedule');
+  const selectedNotes = selectedDayEvents.filter(e => e.eventType === 'note');
 
-  const hasEventOnDay = (dateStr: string) => {
-    return getEventsForDate(dateStr).length > 0;
+  // Returns unique event types present on a given date (up to 3 dots)
+  const getEventTypesForDate = (dateStr: string): CalendarEventType[] => {
+    const events = getEventsForDate(dateStr);
+    const types = new Set<CalendarEventType>();
+    for (const e of events) {
+      types.add(e.eventType);
+      if (types.size === 3) break;
+    }
+    return Array.from(types);
   };
+
+  const renderEventCard = (event: CalendarEvent) => (
+    <div
+      key={event.id}
+      className="rounded-lg p-3 flex items-start justify-between gap-2"
+      style={{ background: 'rgba(255,255,255,0.04)', borderLeft: `3px solid ${EVENT_TYPE_COLORS[event.eventType]}` }}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
+          {event.isRecurring && (
+            <span className="text-xs text-white/30">每周{DAY_NAMES[event.dayOfWeek ?? 0]}</span>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+        {event.timeStart && (
+          <p className="text-xs text-white/40 mt-0.5">{event.timeStart}{event.timeEnd ? ` - ${event.timeEnd}` : ''}</p>
+        )}
+        {event.location && (
+          <p className="text-xs text-white/40">📍 {event.location}</p>
+        )}
+      </div>
+      <div className="flex gap-1 shrink-0">
+        <button onClick={() => openEditEvent(event)} className="text-white/30 hover:text-white text-xs">✏</button>
+        <button onClick={() => deleteEvent(event.id)} className="text-white/30 hover:text-red-400 text-xs">✕</button>
+      </div>
+    </div>
+  );
+
+  const totalSelected = selectedDayEvents.length;
+  const staminaRatio = maxStamina > 0 ? stamina / maxStamina : 0;
 
   return (
     <div className="flex h-full gap-4 p-4" style={{ background: 'linear-gradient(135deg, #0a0a1a, #1a0a2e)', minHeight: '100vh' }}>
-      {/* Left: Calendar */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Left: Calendar (45%) */}
+      <div className="w-[45%] flex flex-col min-w-0">
         {/* Semester banner */}
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -160,17 +233,17 @@ export const CalendarPage: React.FC = () => {
           {/* Days */}
           <div className="grid grid-cols-7">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-1 h-12" />
+              <div key={`empty-${i}`} className="p-1 h-14" />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = toDateStr(currentYear, currentMonth, day);
               const isToday = dateStr === today;
               const isSelected = dateStr === selectedDate;
-              const hasEvent = hasEventOnDay(dateStr);
+              const eventTypes = getEventTypesForDate(dateStr);
               return (
                 <button key={day} onClick={() => setSelectedDate(dateStr)}
-                  className="p-1 h-12 flex flex-col items-center justify-center relative transition-all"
+                  className="p-1 h-14 flex flex-col items-center justify-center relative transition-all"
                   style={{
                     background: isSelected ? 'rgba(255,213,79,0.15)' : 'transparent',
                     borderRadius: '8px',
@@ -185,8 +258,16 @@ export const CalendarPage: React.FC = () => {
                     }}>
                     {day}
                   </span>
-                  {hasEvent && (
-                    <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: '#64B5F6' }} />
+                  {eventTypes.length > 0 && (
+                    <div className="flex gap-0.5 mt-0.5">
+                      {eventTypes.map((type) => (
+                        <div
+                          key={type}
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: EVENT_TYPE_COLORS[type] }}
+                        />
+                      ))}
+                    </div>
                   )}
                 </button>
               );
@@ -195,11 +276,11 @@ export const CalendarPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Day detail */}
-      <div className="w-72 shrink-0 flex flex-col gap-3">
-        <div className="rounded-xl p-4"
+      {/* Right: Day detail (55%) */}
+      <div className="w-[55%] shrink-0 flex flex-col gap-3">
+        <div className="rounded-xl p-4 flex-1"
           style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white">{selectedDate}</h3>
             <button onClick={() => openAddEvent(selectedDate)}
               className="text-xs px-3 py-1 rounded-lg"
@@ -207,39 +288,41 @@ export const CalendarPage: React.FC = () => {
               + 添加
             </button>
           </div>
-          {selectedDayEvents.length === 0 ? (
+
+          {totalSelected === 0 ? (
             <p className="text-xs text-white/30 text-center py-4">暂无安排</p>
           ) : (
-            <div className="flex flex-col gap-2">
-              {selectedDayEvents.map((event) => (
-                <div key={event.id} className="rounded-lg p-3 flex items-start justify-between gap-2"
-                  style={{ background: 'rgba(255,255,255,0.04)', borderLeft: `3px solid ${EVENT_TYPE_COLORS[event.eventType]}` }}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded"
-                        style={{ background: `${EVENT_TYPE_COLORS[event.eventType]}22`, color: EVENT_TYPE_COLORS[event.eventType] }}>
-                        {EVENT_TYPE_LABELS[event.eventType]}
-                      </span>
-                      {event.isRecurring && (
-                        <span className="text-xs text-white/30">每周{DAY_NAMES[event.dayOfWeek ?? 0]}</span>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-white truncate">{event.title}</p>
-                    {event.timeStart && (
-                      <p className="text-xs text-white/40 mt-0.5">{event.timeStart}{event.timeEnd ? ` - ${event.timeEnd}` : ''}</p>
-                    )}
-                    {event.location && (
-                      <p className="text-xs text-white/40">📍 {event.location}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button onClick={() => openEditEvent(event)} className="text-white/30 hover:text-white text-xs">✏</button>
-                    <button onClick={() => deleteEvent(event.id)} className="text-white/30 hover:text-red-400 text-xs">✕</button>
-                  </div>
-                </div>
-              ))}
+            <div>
+              {selectedCourses.length > 0 && (
+                <CollapsibleSection title="今日课程" count={selectedCourses.length} color={EVENT_TYPE_COLORS.course}>
+                  {selectedCourses.map(renderEventCard)}
+                </CollapsibleSection>
+              )}
+              {selectedSchedules.length > 0 && (
+                <CollapsibleSection title="行程事项" count={selectedSchedules.length} color={EVENT_TYPE_COLORS.schedule}>
+                  {selectedSchedules.map(renderEventCard)}
+                </CollapsibleSection>
+              )}
+              {selectedNotes.length > 0 && (
+                <CollapsibleSection title="注意事项" count={selectedNotes.length} color={EVENT_TYPE_COLORS.note}>
+                  {selectedNotes.map(renderEventCard)}
+                </CollapsibleSection>
+              )}
             </div>
           )}
+        </div>
+
+        {/* 体力参考 footer */}
+        <div className="rounded-xl p-4"
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-white/70">体力参考</span>
+            <span className="text-xs" style={{ color: '#FFB74D' }}>{stamina} / {maxStamina}</span>
+          </div>
+          <ProgressBar value={staminaRatio} color="#FFB74D" />
+          <p className="text-xs text-white/40 mt-2">
+            今日有 {totalSelected} 个安排，建议预留体力完成 3-4 个日常任务
+          </p>
         </div>
       </div>
 
