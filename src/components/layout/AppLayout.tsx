@@ -4,10 +4,12 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { LevelUpAnimation } from '../animations/LevelUpAnimation';
 import { AchievementUnlockAnimation } from '../animations/AchievementUnlockAnimation';
+import { MainlineCompleteAnimation } from '../animations/MainlineCompleteAnimation';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useAchievementStore } from '../../stores/useAchievementStore';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { useBossStore } from '../../stores/useBossStore';
+import { useMainlineStore } from '../../stores/useMainlineStore';
 
 export function AppLayout() {
   const totalExp = usePlayerStore((s) => s.totalExp);
@@ -30,6 +32,13 @@ export function AppLayout() {
   const [achievementAnim, setAchievementAnim] = useState<{
     show: boolean; achievement: { name: string; description: string; points: number } | null;
   }>({ show: false, achievement: null });
+
+  // Track mainline completions
+  const mainlineQuests = useMainlineStore((s) => s.mainlineQuests);
+  const prevMainlineCompletedRef = useRef(mainlineQuests.filter(q => q.status === 'completed').length);
+  const [mainlineAnim, setMainlineAnim] = useState<{
+    show: boolean; title: string;
+  }>({ show: false, title: '' });
 
   // Check for level-up after exp changes
   useEffect(() => {
@@ -61,6 +70,20 @@ export function AppLayout() {
     }
     prevUnlockedRef.current = currentUnlocked;
   }, [achievements]);
+
+  // Detect newly completed mainline quests
+  useEffect(() => {
+    const currentCompleted = mainlineQuests.filter(q => q.status === 'completed').length;
+    if (currentCompleted > prevMainlineCompletedRef.current) {
+      const newest = mainlineQuests
+        .filter(q => q.status === 'completed' && q.completedAt)
+        .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0];
+      if (newest) {
+        setMainlineAnim({ show: true, title: newest.title });
+      }
+    }
+    prevMainlineCompletedRef.current = currentCompleted;
+  }, [mainlineQuests]);
 
   // Daily reset check on mount
   useEffect(() => {
@@ -101,6 +124,11 @@ export function AppLayout() {
         show={achievementAnim.show}
         achievement={achievementAnim.achievement}
         onDismiss={() => setAchievementAnim(s => ({ ...s, show: false }))}
+      />
+      <MainlineCompleteAnimation
+        show={mainlineAnim.show}
+        mainlineTitle={mainlineAnim.title}
+        onDismiss={() => setMainlineAnim(s => ({ ...s, show: false }))}
       />
     </div>
   );
