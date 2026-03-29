@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGachaStore } from '../../stores/useGachaStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
+import { GachaAnimation } from '../../components/animations/GachaAnimation';
 import type { GachaPrize, GachaPool } from '../../types';
 import { GACHA_CONFIG } from '../../lib/constants';
 
@@ -9,12 +10,6 @@ const RARITY_COLORS: Record<number, string> = {
   3: '#9E9E9E',
   4: '#CE93D8',
   5: '#FFD54F',
-};
-
-const RARITY_LABELS: Record<number, string> = {
-  3: '三星',
-  4: '四星',
-  5: '五星',
 };
 
 interface PoolConfigModalProps {
@@ -165,63 +160,18 @@ function PoolConfigModal({ onClose, onSave }: PoolConfigModalProps) {
   );
 }
 
-interface PullResultsDisplayProps {
-  results: GachaPrize[];
-  onClose: () => void;
-}
-
-function PullResultsDisplay({ results, onClose }: PullResultsDisplayProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="w-full max-w-2xl mx-4 rounded-xl border border-white/10 bg-[#0f0f2a]/95 p-6"
-      >
-        <h3 className="text-center text-[#FFD54F] font-semibold mb-4" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-          祈愿结果
-        </h3>
-        <div className={`grid gap-3 ${results.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-5'}`}>
-          {results.map((prize, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.08 }}
-              className="rounded-lg p-3 flex flex-col items-center gap-1 border-2"
-              style={{
-                borderColor: RARITY_COLORS[prize.rarity],
-                background: `${RARITY_COLORS[prize.rarity]}15`,
-              }}
-            >
-              <span className="text-xs font-medium" style={{ color: RARITY_COLORS[prize.rarity] }}>
-                {RARITY_LABELS[prize.rarity]}
-              </span>
-              <span className="text-white text-xs text-center leading-tight">{prize.name}</span>
-              {prize.isUp && (
-                <span className="text-[10px] text-[#FFD54F] bg-[#FFD54F]/20 px-1.5 py-0.5 rounded">UP</span>
-              )}
-            </motion.div>
-          ))}
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-6 w-full rounded-lg py-2 text-sm text-white/60 border border-white/10 hover:bg-white/5 transition-colors"
-        >
-          关闭
-        </button>
-      </motion.div>
-    </div>
-  );
-}
-
 export default function GachaPanel() {
   const { pools, history, createPool, deletePool, pullSingle, pullTen, getPityInfo } = useGachaStore();
   const stardust = usePlayerStore((s) => s.stardust);
   const [showConfig, setShowConfig] = useState(false);
-  const [pullResults, setPullResults] = useState<GachaPrize[] | null>(null);
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+
+  // Animation state
+  const [animState, setAnimState] = useState<{
+    show: boolean;
+    prizes: GachaPrize[];
+    mode: 'single' | 'multi';
+  }>({ show: false, prizes: [], mode: 'single' });
 
   const activePool = selectedPoolId
     ? pools.find((p) => p.id === selectedPoolId)
@@ -233,13 +183,21 @@ export default function GachaPanel() {
   const handleSinglePull = () => {
     if (!activePool) return;
     const prize = pullSingle(activePool.id);
-    if (prize) setPullResults([prize]);
+    if (prize) {
+      setAnimState({ show: true, prizes: [prize], mode: 'single' });
+    }
   };
 
   const handleTenPull = () => {
     if (!activePool) return;
     const prizes = pullTen(activePool.id);
-    if (prizes.length > 0) setPullResults(prizes);
+    if (prizes.length > 0) {
+      setAnimState({ show: true, prizes, mode: 'multi' });
+    }
+  };
+
+  const handleAnimDismiss = () => {
+    setAnimState({ show: false, prizes: [], mode: 'single' });
   };
 
   return (
@@ -416,7 +374,7 @@ export default function GachaPanel() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Config Modal */}
       <AnimatePresence>
         {showConfig && (
           <PoolConfigModal
@@ -424,13 +382,15 @@ export default function GachaPanel() {
             onSave={(data) => createPool(data)}
           />
         )}
-        {pullResults && (
-          <PullResultsDisplay
-            results={pullResults}
-            onClose={() => setPullResults(null)}
-          />
-        )}
       </AnimatePresence>
+
+      {/* Gacha Animation Overlay */}
+      <GachaAnimation
+        show={animState.show}
+        prizes={animState.prizes}
+        mode={animState.mode}
+        onDismiss={handleAnimDismiss}
+      />
     </div>
   );
 }

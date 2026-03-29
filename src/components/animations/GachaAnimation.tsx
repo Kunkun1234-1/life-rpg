@@ -1,327 +1,394 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GachaRarity } from '../../types';
 
-interface GachaPrizeInput {
+interface GachaPrize {
   name: string;
-  rarity: GachaRarity;
+  rarity: 3 | 4 | 5;
+  isUp?: boolean;
 }
 
 interface GachaAnimationProps {
   show: boolean;
-  prizes: GachaPrizeInput[];
+  prizes: GachaPrize[];
+  mode: 'single' | 'multi';
   onDismiss?: () => void;
 }
 
-const RARITY_COLORS: Record<GachaRarity, string> = {
-  3: '#9E9E9E',
+type Phase = 'loading' | 'video' | 'result' | 'done';
+
+const RARITY_COLORS: Record<3 | 4 | 5, string> = {
+  3: '#64B5F6',
   4: '#CE93D8',
   5: '#FFD54F',
 };
 
-const PARTICLE_COUNT = 16;
+const RARITY_BORDER_CLASS: Record<3 | 4 | 5, string> = {
+  3: 'border-[#9E9E9E]/60',
+  4: 'border-[#CE93D8]/60',
+  5: 'border-[#FFD54F]/60',
+};
 
-function getHighestRarity(prizes: GachaPrizeInput[]): GachaRarity {
-  return prizes.reduce((max, p) => (p.rarity > max ? p.rarity : max), 3 as GachaRarity);
+function getHighestRarity(prizes: GachaPrize[]): 3 | 4 | 5 {
+  return prizes.reduce<3 | 4 | 5>((max, p) => (p.rarity > max ? p.rarity : max), 3);
 }
 
-function getDismissDelay(rarity: GachaRarity): number {
-  if (rarity === 5) return 5000;
-  if (rarity === 4) return 3000;
-  return 2000;
+function getVideoPath(prizes: GachaPrize[], mode: 'single' | 'multi'): string {
+  const highest = getHighestRarity(prizes);
+  if (mode === 'single') {
+    return `/videos/gacha/${highest}star-single.mp4`;
+  }
+  // Multi pull
+  if (highest === 5) return '/videos/gacha/5star-multi.mp4';
+  if (highest === 4) return '/videos/gacha/4star-multi.mp4';
+  // All 3-star multi: use 3star-single as fallback
+  return '/videos/gacha/3star-single.mp4';
 }
 
-interface SinglePullProps {
-  prize: GachaPrizeInput;
-  rarity: GachaRarity;
+function sortPrizes(prizes: GachaPrize[]): GachaPrize[] {
+  return [...prizes].sort((a, b) => b.rarity - a.rarity);
 }
 
-function ThreeStarDisplay({ prize }: SinglePullProps) {
-  return (
-    <motion.div
-      className="flex flex-col items-center gap-3 rounded-2xl px-12 py-8"
-      style={{
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(16px)',
-        border: `1px solid ${RARITY_COLORS[3]}44`,
-        boxShadow: `0 0 30px ${RARITY_COLORS[3]}22`,
-      }}
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-    >
-      <div style={{ color: RARITY_COLORS[3] }} className="text-xs tracking-widest">
-        ★★★
-      </div>
-      <div
-        className="text-white text-2xl font-bold"
-        style={{ fontFamily: 'Noto Serif SC, serif', textShadow: `0 0 12px ${RARITY_COLORS[3]}` }}
-      >
-        {prize.name}
-      </div>
-    </motion.div>
-  );
-}
-
-function FourStarDisplay({ prize }: SinglePullProps) {
-  return (
-    <>
-      {/* Purple beam from bottom */}
-      <motion.div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2"
-        style={{
-          width: 4,
-          height: '100%',
-          background: 'linear-gradient(to top, rgba(120,80,200,0.8), transparent)',
-          transformOrigin: 'bottom',
-        }}
-        initial={{ scaleY: 0 }}
-        animate={{ scaleY: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      />
-      {/* Purple particles */}
-      {Array.from({ length: 12 }).map((_, i) => {
-        const angle = (i / 12) * 360;
-        const distance = 70 + Math.random() * 50;
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <motion.div
-            key={i}
-            className="absolute w-1.5 h-1.5 rounded-full"
-            style={{
-              top: '50%', left: '50%', marginTop: -3, marginLeft: -3,
-              background: RARITY_COLORS[4],
-            }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-            animate={{
-              x: Math.cos(rad) * distance,
-              y: Math.sin(rad) * distance,
-              opacity: 0,
-              scale: 0,
-            }}
-            transition={{ duration: 0.9, delay: 0.3 + i * 0.03, ease: 'easeOut' }}
-          />
-        );
-      })}
-      {/* Card with flip */}
-      <motion.div
-        className="flex flex-col items-center gap-3 rounded-2xl px-12 py-8 relative z-10"
-        style={{
-          background: 'rgba(120,80,200,0.15)',
-          backdropFilter: 'blur(16px)',
-          border: `1px solid ${RARITY_COLORS[4]}66`,
-          boxShadow: `0 0 40px ${RARITY_COLORS[4]}33`,
-        }}
-        initial={{ rotateY: 180, opacity: 0 }}
-        animate={{ rotateY: 0, opacity: 1 }}
-        exit={{ rotateY: 180, opacity: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <div style={{ color: RARITY_COLORS[4] }} className="text-xs tracking-widest">
-          ★★★★
-        </div>
-        <div
-          className="text-white text-2xl font-bold"
-          style={{ fontFamily: 'Noto Serif SC, serif', textShadow: `0 0 16px ${RARITY_COLORS[4]}` }}
-        >
-          {prize.name}
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-function FiveStarDisplay({ prize }: SinglePullProps) {
-  return (
-    <>
-      {/* Gold burst ring */}
-      <motion.div
-        className="absolute rounded-full border-2 border-yellow-400/50"
-        initial={{ width: 0, height: 0, opacity: 1 }}
-        animate={{ width: 700, height: 700, opacity: 0 }}
-        transition={{ duration: 1.5, ease: 'easeOut' }}
-      />
-      {/* Gold particles */}
-      {Array.from({ length: PARTICLE_COUNT }).map((_, i) => {
-        const angle = (i / PARTICLE_COUNT) * 360;
-        const distance = 90 + Math.random() * 80;
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full"
-            style={{
-              top: '50%', left: '50%', marginTop: -4, marginLeft: -4,
-              background: RARITY_COLORS[5],
-            }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-            animate={{
-              x: Math.cos(rad) * distance,
-              y: Math.sin(rad) * distance,
-              opacity: 0,
-              scale: 0,
-            }}
-            transition={{ duration: 1.2, delay: 0.2 + i * 0.04, ease: 'easeOut' }}
-          />
-        );
-      })}
-      {/* Card zoom */}
-      <motion.div
-        className="flex flex-col items-center gap-4 rounded-2xl px-14 py-10 relative z-10"
-        style={{
-          background: 'rgba(255,213,79,0.08)',
-          backdropFilter: 'blur(20px)',
-          border: `1px solid ${RARITY_COLORS[5]}88`,
-          boxShadow: `0 0 60px ${RARITY_COLORS[5]}44`,
-        }}
-        initial={{ scale: 0.2, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.2, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 18, delay: 0.1 }}
-      >
-        <div style={{ color: RARITY_COLORS[5] }} className="text-xs tracking-widest">
-          ★★★★★
-        </div>
-        <motion.div
-          className="text-3xl font-bold"
-          style={{
-            fontFamily: 'Noto Serif SC, serif',
-            color: RARITY_COLORS[5],
-            textShadow: `0 0 24px ${RARITY_COLORS[5]}`,
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          {prize.name}
-        </motion.div>
-        <motion.div
-          className="text-yellow-400/60 text-xs tracking-[0.3em]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-        >
-          稀有物品
-        </motion.div>
-      </motion.div>
-    </>
-  );
-}
-
-function MultiPullGrid({ prizes }: { prizes: GachaPrizeInput[] }) {
-  return (
-    <motion.div
-      className="grid grid-cols-5 gap-3"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.3 }}
-    >
-      {prizes.map((prize, i) => (
-        <motion.div
-          key={i}
-          className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-4"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(10px)',
-            border: `1px solid ${RARITY_COLORS[prize.rarity]}55`,
-            boxShadow: `0 0 12px ${RARITY_COLORS[prize.rarity]}22`,
-          }}
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: i * 0.08, type: 'spring', stiffness: 260, damping: 22 }}
-        >
-          <div
-            className="text-xs font-bold"
-            style={{ color: RARITY_COLORS[prize.rarity] }}
-          >
-            {'★'.repeat(prize.rarity)}
-          </div>
-          <div
-            className="text-white text-xs text-center font-medium leading-tight"
-            style={{ fontFamily: 'Noto Serif SC, serif' }}
-          >
-            {prize.name}
-          </div>
-        </motion.div>
-      ))}
-    </motion.div>
-  );
-}
-
-export function GachaAnimation({ show, prizes, onDismiss }: GachaAnimationProps) {
-  const highestRarity = getHighestRarity(prizes);
-  const isMultiPull = prizes.length > 1;
-  const dismissDelay = getDismissDelay(highestRarity);
+/* ---------- Single Pull Result Card ---------- */
+function SingleResultCard({ prize, onSkip }: { prize: GachaPrize; onSkip: () => void }) {
+  const [starsRevealed, setStarsRevealed] = useState(0);
+  const [canDismiss, setCanDismiss] = useState(prize.rarity !== 5);
+  const stars = '★'.repeat(prize.rarity);
 
   useEffect(() => {
-    if (!show) return;
-    const timer = setTimeout(() => onDismiss?.(), dismissDelay);
-    return () => clearTimeout(timer);
-  }, [show, dismissDelay, onDismiss]);
-
-  const getOverlayStyle = () => {
-    if (highestRarity === 5) {
-      return {
-        background: 'radial-gradient(circle at center, rgba(255,213,79,0.2) 0%, rgba(10,10,26,0.97) 70%)',
-      };
+    // Animate stars in one by one
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (let i = 0; i < prize.rarity; i++) {
+      timers.push(setTimeout(() => setStarsRevealed(i + 1), 150 + i * 150));
     }
-    if (highestRarity === 4) {
-      return { background: 'rgba(120,80,200,0.3)' };
+    // For 5-star: allow dismiss after all stars + extra time
+    if (prize.rarity === 5) {
+      timers.push(setTimeout(() => setCanDismiss(true), 150 + prize.rarity * 150 + 500));
     }
-    return { background: 'rgba(10,10,26,0.8)' };
-  };
+    // Auto-dismiss for 3-star
+    if (prize.rarity === 3) {
+      timers.push(setTimeout(() => onSkip(), 1500));
+    }
+    // Auto-dismiss for 4-star
+    if (prize.rarity === 4) {
+      timers.push(setTimeout(() => onSkip(), 2000));
+    }
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prize.rarity]);
 
-  const topPrize = prizes.reduce((best, p) => (p.rarity >= best.rarity ? p : best), prizes[0]);
+  const glowClass =
+    prize.rarity === 5
+      ? 'gacha-pulse-gold'
+      : prize.rarity === 4
+        ? 'gacha-pulse-purple'
+        : '';
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[10001] flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
+      onClick={() => canDismiss && onSkip()}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className={`relative flex flex-col items-center gap-5 rounded-2xl px-16 py-10 border-2 ${RARITY_BORDER_CLASS[prize.rarity]}`}
+        style={{
+          background: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(20px)',
+          animationName: glowClass,
+          animationDuration: '2s',
+          animationIterationCount: 'infinite',
+        }}
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Stars */}
+        <div className="flex gap-1">
+          {stars.split('').map((s, i) => (
+            <motion.span
+              key={i}
+              className="text-lg"
+              style={{
+                color: RARITY_COLORS[prize.rarity],
+                textShadow: prize.rarity === 5 ? `0 0 12px ${RARITY_COLORS[5]}` : undefined,
+                opacity: i < starsRevealed ? 1 : 0,
+                transform: i < starsRevealed ? 'scale(1)' : 'scale(0.5)',
+                transition: 'opacity 0.2s, transform 0.3s',
+              }}
+            >
+              {s}
+            </motion.span>
+          ))}
+        </div>
+
+        {/* Prize name */}
+        <motion.div
+          className="text-white text-3xl font-bold text-center"
+          style={{
+            fontFamily: 'Noto Serif SC, serif',
+            textShadow: `0 0 20px ${RARITY_COLORS[prize.rarity]}`,
+          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {prize.name}
+        </motion.div>
+
+        {/* UP badge */}
+        {prize.isUp && (
+          <motion.span
+            className="px-3 py-1 rounded-full text-xs font-bold tracking-wider"
+            style={{
+              background: 'linear-gradient(135deg, #FFD54F, #FFB300)',
+              color: '#0a0a1a',
+            }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            UP
+          </motion.span>
+        )}
+
+        {/* Hint */}
+        {canDismiss && (
+          <motion.p
+            className="text-white/30 text-xs mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            点击关闭
+          </motion.p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ---------- Multi Pull Result Grid ---------- */
+function MultiResultGrid({ prizes, onClose }: { prizes: GachaPrize[]; onClose: () => void }) {
+  const sorted = sortPrizes(prizes);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-8"
+      style={{ background: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="grid grid-cols-5 gap-3 max-w-3xl w-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {sorted.map((prize, i) => {
+          const is5Star = prize.rarity === 5;
+          const glowStyle =
+            prize.rarity === 5
+              ? 'gacha-pulse-gold'
+              : prize.rarity === 4
+                ? 'gacha-pulse-purple'
+                : '';
+          return (
+            <motion.div
+              key={i}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 border-2 ${RARITY_BORDER_CLASS[prize.rarity]} ${is5Star ? 'col-span-2 py-6' : ''}`}
+              style={{
+                background: `${RARITY_COLORS[prize.rarity]}10`,
+                backdropFilter: 'blur(10px)',
+                animationName: glowStyle,
+                animationDuration: '2s',
+                animationIterationCount: 'infinite',
+              }}
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: i * 0.08, type: 'spring', stiffness: 260, damping: 22 }}
+            >
+              <div
+                className="text-xs font-bold tracking-wider"
+                style={{ color: RARITY_COLORS[prize.rarity] }}
+              >
+                {'★'.repeat(prize.rarity)}
+              </div>
+              <div
+                className={`text-white text-center font-medium leading-tight ${is5Star ? 'text-lg' : 'text-xs'}`}
+                style={{ fontFamily: 'Noto Serif SC, serif' }}
+              >
+                {prize.name}
+              </div>
+              {prize.isUp && (
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded"
+                  style={{ background: '#FFD54F33', color: '#FFD54F' }}
+                >
+                  UP
+                </span>
+              )}
+            </motion.div>
+          );
+        })}
+      </motion.div>
+
+      <motion.button
+        className="mt-6 px-8 py-2 rounded-lg border border-white/20 text-white/60 text-sm hover:bg-white/5 transition-colors"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 + prizes.length * 0.08 }}
+        onClick={onClose}
+      >
+        关闭
+      </motion.button>
+    </motion.div>
+  );
+}
+
+/* ---------- Main GachaAnimation Component ---------- */
+export function GachaAnimation({ show, prizes, mode, onDismiss }: GachaAnimationProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [phase, setPhase] = useState<Phase>('loading');
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const highestRarity = getHighestRarity(prizes);
+
+  // Reset phase when show changes
+  useEffect(() => {
+    if (show && prizes.length > 0) {
+      setPhase('loading');
+      setVideoReady(false);
+      setVideoError(false);
+    }
+  }, [show, prizes]);
+
+  // Start video when ready
+  useEffect(() => {
+    if (phase === 'loading' && videoReady && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {
+        // If autoplay fails, skip to result
+        setPhase('result');
+      });
+      setPhase('video');
+    }
+  }, [phase, videoReady]);
+
+  // If video fails to load, skip directly to result
+  useEffect(() => {
+    if (videoError && phase === 'loading') {
+      setPhase('result');
+    }
+  }, [videoError, phase]);
+
+  const handleVideoEnded = useCallback(() => {
+    setPhase('result');
+  }, []);
+
+  const handleVideoCanPlay = useCallback(() => {
+    setVideoReady(true);
+  }, []);
+
+  const handleVideoError = useCallback(() => {
+    setVideoError(true);
+  }, []);
+
+  const handleVideoClick = useCallback(() => {
+    // 5-star: cannot skip video
+    if (highestRarity === 5) return;
+    // Skip video, go to result
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    setPhase('result');
+  }, [highestRarity]);
+
+  const handleResultDismiss = useCallback(() => {
+    setPhase('done');
+    onDismiss?.();
+  }, [onDismiss]);
+
+  if (!show || prizes.length === 0) return null;
+
+  const videoPath = getVideoPath(prizes, mode);
 
   return (
     <AnimatePresence>
-      {show && prizes.length > 0 && (
+      {show && (
         <motion.div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
+          className="fixed inset-0 z-[9999]"
+          style={{ background: '#000' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={getOverlayStyle()}
-          onClick={onDismiss}
+          transition={{ duration: 0.3 }}
         >
-          {isMultiPull ? (
+          {/* Video element */}
+          {(phase === 'loading' || phase === 'video') && (
             <>
-              {/* Show highest rarity animation briefly, then grid */}
-              <motion.div
-                className="relative flex items-center justify-center"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 0 }}
-                transition={{ delay: 1.2, duration: 0.4 }}
-              >
-                {highestRarity === 5 && <FiveStarDisplay prize={topPrize} rarity={5} />}
-                {highestRarity === 4 && <FourStarDisplay prize={topPrize} rarity={4} />}
-                {highestRarity === 3 && <ThreeStarDisplay prize={topPrize} rarity={3} />}
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.8 }}
-              >
-                <MultiPullGrid prizes={prizes} />
-              </motion.div>
+              <video
+                ref={videoRef}
+                className="absolute inset-0 w-full h-full object-cover"
+                src={videoPath}
+                muted
+                playsInline
+                onCanPlay={handleVideoCanPlay}
+                onEnded={handleVideoEnded}
+                onError={handleVideoError}
+                onClick={handleVideoClick}
+                style={{ cursor: highestRarity === 5 ? 'default' : 'pointer' }}
+              />
+              {/* Loading indicator */}
+              {phase === 'loading' && !videoError && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.div
+                    className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                </div>
+              )}
+              {/* Skip hint for non-5-star */}
+              {phase === 'video' && highestRarity !== 5 && (
+                <motion.p
+                  className="absolute bottom-8 right-8 text-white/30 text-xs"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                >
+                  点击跳过
+                </motion.p>
+              )}
             </>
-          ) : (
-            <div className="relative flex items-center justify-center">
-              {highestRarity === 5 && <FiveStarDisplay prize={topPrize} rarity={5} />}
-              {highestRarity === 4 && <FourStarDisplay prize={topPrize} rarity={4} />}
-              {highestRarity === 3 && <ThreeStarDisplay prize={topPrize} rarity={3} />}
-            </div>
           )}
 
-          <motion.p
-            className="text-white/40 text-xs"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: isMultiPull ? 2.5 : dismissDelay / 1000 - 1 }}
-          >
-            点击任意处关闭
-          </motion.p>
+          {/* Darkened background after video for result display */}
+          {phase === 'result' && (
+            <div className="absolute inset-0 bg-black/70" />
+          )}
+
+          {/* Result overlay */}
+          <AnimatePresence>
+            {phase === 'result' && mode === 'single' && (
+              <SingleResultCard
+                prize={prizes[0]}
+                onSkip={handleResultDismiss}
+              />
+            )}
+            {phase === 'result' && mode === 'multi' && (
+              <MultiResultGrid
+                prizes={prizes}
+                onClose={handleResultDismiss}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
