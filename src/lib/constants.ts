@@ -1,4 +1,4 @@
-import type { AttributeInfo, Title, RarityConfig, Achievement, Breakthrough, ShopItem } from '../types';
+import type { AttributeInfo, Title, RarityConfig, Achievement, Breakthrough, ShopItem, AchievementCategoryInfo } from '../types';
 
 // --- Attribute Definitions ---
 export const ATTRIBUTES: AttributeInfo[] = [
@@ -78,15 +78,90 @@ export const ACHIEVEMENT_UNLOCKS = [
   { points: 100, feature: '高级数据统计视图' },
 ];
 
-// --- Default Achievements ---
-export const DEFAULT_ACHIEVEMENTS: Omit<Achievement, 'id' | 'unlockedAt'>[] = [
-  { key: 'first_quest', name: '初次冒险', description: '完成第一个任务', category: 'milestone', points: 5, condition: 'complete_first_task' },
-  { key: 'streak_7', name: '持之以恒', description: '连续7天完成所有日常任务', category: 'streak', points: 10, condition: 'streak_7_days' },
-  { key: 'attr_awakening', name: '属性觉醒', description: '任意属性达到 Lv.10', category: 'attribute', points: 15, condition: 'any_attr_level_10' },
-  { key: 'epic_slayer', name: '史诗破敌', description: '首次完成史诗级任务', category: 'task', points: 20, condition: 'complete_first_epic' },
-  { key: 'monthly_legend', name: '月度传说', description: '单月累计获得 3000+ 经验值', category: 'milestone', points: 25, condition: 'monthly_exp_3000' },
-  { key: 'balanced', name: '全面发展', description: '所有属性均达到 Lv.5 以上', category: 'attribute', points: 30, condition: 'all_attrs_level_5' },
+// --- Achievement Categories (8 categories, Star Rail inspired) ---
+export const ACHIEVEMENT_CATEGORIES: AchievementCategoryInfo[] = [
+  { key: 'beginner', label: '初心启程', icon: '🌟' },
+  { key: 'persistence', label: '持之以恒', icon: '🔥' },
+  { key: 'attribute', label: '六维觉醒', icon: '💎' },
+  { key: 'quest', label: '征途万里', icon: '⚔️' },
+  { key: 'gacha', label: '命运之轮', icon: '🎰' },
+  { key: 'principle', label: '智者之书', icon: '📖' },
+  { key: 'shop', label: '星尘商人', icon: '✨' },
+  { key: 'legendary', label: '传说缔造', icon: '👑' },
 ];
+
+// --- Expanded Achievements (~40+, three reward tiers) ---
+// normal: +1pt, +20 stardust | rare: +3pt, +80 stardust | legendary: +5pt, +200 stardust
+export const DEFAULT_ACHIEVEMENTS: Omit<Achievement, 'id' | 'unlockedAt'>[] = [
+  // === 初心启程 (Beginner) ===
+  { key: 'first_quest', name: '初次冒险', description: '完成第一个任务', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'complete_first_task' },
+  { key: 'first_level_up', name: '初露锋芒', description: '冒险等级达到 Lv.2', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'adventure_level_2' },
+  { key: 'first_principle', name: '原则觉醒', description: '创建第一条自定义原则', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_principle' },
+  { key: 'first_shop', name: '首次消费', description: '在商城兑换第一件物品', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_purchase' },
+  { key: 'first_equipment', name: '装备就绪', description: '装备第一件装备', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_equipment' },
+  { key: 'first_mainline', name: '指引之路', description: '创建第一条主线任务', category: 'beginner', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_mainline' },
+
+  // === 持之以恒 (Persistence) ===
+  { key: 'streak_3', name: '三日不辍', description: '连续3天完成所有日常任务', category: 'persistence', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'streak_3_days' },
+  { key: 'streak_7', name: '周而复始', description: '连续7天完成所有日常任务', category: 'persistence', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'streak_7_days' },
+  { key: 'streak_14', name: '半月无歇', description: '连续14天完成所有日常任务', category: 'persistence', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'streak_14_days' },
+  { key: 'streak_30', name: '铁杵成针', description: '连续30天完成所有日常任务', category: 'persistence', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'visible', condition: 'streak_30_days' },
+  { key: 'streak_100', name: '百日精进', description: '连续100天完成所有日常任务', category: 'persistence', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'hidden', condition: 'streak_100_days' },
+
+  // === 六维觉醒 (Attribute) ===
+  { key: 'any_attr_5', name: '初窥门径', description: '任意属性达到 Lv.5', category: 'attribute', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'any_attr_level_5' },
+  { key: 'any_attr_10', name: '属性觉醒', description: '任意属性达到 Lv.10', category: 'attribute', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'any_attr_level_10' },
+  { key: 'any_attr_15', name: '登峰造极', description: '任意属性达到 Lv.15', category: 'attribute', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'visible', condition: 'any_attr_level_15' },
+  { key: 'all_attrs_3', name: '六维萌芽', description: '所有属性均达到 Lv.3', category: 'attribute', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'all_attrs_level_3' },
+  { key: 'all_attrs_5', name: '全面发展', description: '所有属性均达到 Lv.5', category: 'attribute', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'all_attrs_level_5' },
+  { key: 'all_attrs_10', name: '六维圆满', description: '所有属性均达到 Lv.10', category: 'attribute', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'hidden', condition: 'all_attrs_level_10' },
+
+  // === 征途万里 (Quest) ===
+  { key: 'tasks_10', name: '初出茅庐', description: '累计完成10个任务', category: 'quest', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'total_tasks_10' },
+  { key: 'tasks_50', name: '久经沙场', description: '累计完成50个任务', category: 'quest', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'total_tasks_50' },
+  { key: 'tasks_200', name: '身经百战', description: '累计完成200个任务', category: 'quest', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'visible', condition: 'total_tasks_200' },
+  { key: 'epic_slayer', name: '史诗破敌', description: '首次完成史诗级任务', category: 'quest', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'complete_first_epic' },
+  { key: 'legend_slayer', name: '传说缔造者', description: '首次完成传说级任务', category: 'quest', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'visible', condition: 'complete_first_legend' },
+  { key: 'mainline_complete', name: '主线终章', description: '完成一条主线任务', category: 'quest', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'complete_first_mainline' },
+
+  // === 命运之轮 (Gacha) ===
+  { key: 'first_pull', name: '命运初试', description: '进行第一次祈愿', category: 'gacha', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_gacha_pull' },
+  { key: 'first_4star', name: '紫光闪耀', description: '首次获得四星奖励', category: 'gacha', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_4star' },
+  { key: 'first_5star', name: '金光璀璨', description: '首次获得五星奖励', category: 'gacha', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'first_5star' },
+  { key: 'pulls_100', name: '百抽达人', description: '累计祈愿100次', category: 'gacha', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'total_pulls_100' },
+  { key: 'guaranteed_hit', name: '命运眷顾', description: '触发大保底获得UP五星', category: 'gacha', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'hidden', condition: 'grand_guarantee_hit' },
+
+  // === 智者之书 (Principle) ===
+  { key: 'first_decision_log', name: '决策之始', description: '写下第一条决策日志', category: 'principle', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_decision_log' },
+  { key: 'principles_5', name: '原则初成', description: '累计创建5条自定义原则', category: 'principle', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'principles_count_5' },
+  { key: 'logs_10', name: '反思达人', description: '写满10条决策日志', category: 'principle', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'logs_count_10' },
+  { key: 'convert_log', name: '从实践到原则', description: '将决策日志转化为原则', category: 'principle', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_log_convert' },
+
+  // === 星尘商人 (Shop) ===
+  { key: 'stardust_1000', name: '小有积蓄', description: '累计获得1000星尘', category: 'shop', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'total_stardust_earned_1000' },
+  { key: 'stardust_5000', name: '星尘富翁', description: '累计获得5000星尘', category: 'shop', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'total_stardust_earned_5000' },
+  { key: 'big_spender', name: '大手笔', description: '单次购买花费500+星尘', category: 'shop', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'single_purchase_500' },
+  { key: 'monthly_exp_3000', name: '月度传说', description: '单月累计获得3000+经验值', category: 'shop', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'monthly_exp_3000' },
+
+  // === 传说缔造 (Legendary) ===
+  { key: 'level_10', name: '觉醒之人', description: '冒险等级达到 Lv.10', category: 'legendary', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'adventure_level_10' },
+  { key: 'level_20', name: '通达贤者', description: '冒险等级达到 Lv.20', category: 'legendary', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'visible', condition: 'adventure_level_20' },
+  { key: 'level_30', name: '超凡入圣', description: '冒险等级达到 Lv.30', category: 'legendary', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'hidden', condition: 'adventure_level_30' },
+  { key: 'boss_weekly', name: '首领终结者', description: '首次击败周本Boss', category: 'legendary', points: 1, stardustReward: 20, rewardTier: 'normal', visibility: 'visible', condition: 'first_boss_defeat' },
+  { key: 'boss_monthly', name: '月度霸主', description: '击败月度Boss', category: 'legendary', points: 3, stardustReward: 80, rewardTier: 'rare', visibility: 'visible', condition: 'first_monthly_boss' },
+  { key: 'breakthrough_first', name: '破境飞升', description: '完成第一次突破任务', category: 'legendary', points: 5, stardustReward: 200, rewardTier: 'legendary', visibility: 'hidden', condition: 'first_breakthrough' },
+];
+
+// --- Gacha System Config ---
+export const GACHA_CONFIG = {
+  PULL_COST: 160,
+  TEN_PULL_COST: 1600,
+  RATES: { THREE_STAR: 0.943, FOUR_STAR: 0.051, FIVE_STAR: 0.006 },
+  SOFT_PITY_START: 75,
+  HARD_PITY: 90,
+  FOUR_STAR_GUARANTEE: 10,
+  GRAND_GUARANTEE: 180,
+};
 
 // --- Breakthrough Tasks ---
 export const BREAKTHROUGHS: Breakthrough[] = [

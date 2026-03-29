@@ -37,6 +37,7 @@ export interface Task {
   staminaCost: number;
   status: TaskStatus;
   parentTaskId?: string; // for subtasks
+  mainlineId?: string; // linked mainline quest
   subtasks?: Task[];
   isFirstCompletion: boolean;
   deadline?: string; // ISO date
@@ -82,7 +83,15 @@ export interface Title {
 }
 
 // --- Achievement System ---
-export type AchievementCategory = 'milestone' | 'streak' | 'attribute' | 'task' | 'special';
+export type AchievementCategory = 'beginner' | 'persistence' | 'attribute' | 'quest' | 'gacha' | 'principle' | 'shop' | 'legendary';
+export type AchievementRewardTier = 'normal' | 'rare' | 'legendary';
+export type AchievementVisibility = 'visible' | 'hidden';
+
+export interface AchievementCategoryInfo {
+  key: AchievementCategory;
+  label: string;
+  icon: string;
+}
 
 export interface Achievement {
   id: string;
@@ -91,7 +100,12 @@ export interface Achievement {
   description: string;
   category: AchievementCategory;
   points: number;
-  condition: string; // description of unlock condition
+  stardustReward: number;
+  rewardTier: AchievementRewardTier;
+  visibility: AchievementVisibility;
+  condition: string;
+  progress?: number;
+  maxProgress?: number;
   unlockedAt?: string;
 }
 
@@ -111,7 +125,7 @@ export interface Equipment {
 }
 
 // --- Shop System ---
-export type ShopCategory = 'instant_reward' | 'item_shop' | 'stored_reward';
+export type ShopCategory = 'instant_reward' | 'item_shop' | 'stored_reward' | 'gacha';
 export type ItemEffectType = 'stamina_boost' | 'exp_boost' | 'stardust_boost' | 'rest_day' | 'attr_resonance' | 'fate_compass' | 'time_sand' | 'custom';
 
 export interface ShopItem {
@@ -244,6 +258,61 @@ export interface ReviewReport {
   achievementsUnlocked: string[];
   streakDays: number;
   createdAt: string;
+}
+
+// --- Mainline Quest System ---
+export type MainlineStatus = 'active' | 'completed' | 'abandoned';
+
+export interface MainlineQuest {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  attributeKeys: AttributeKey[];
+  status: MainlineStatus;
+  completionCondition?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// --- Gacha/Wish System ---
+export type GachaRarity = 3 | 4 | 5;
+
+export interface GachaPrize {
+  name: string;
+  rarity: GachaRarity;
+  isUp?: boolean; // for 5-star UP item
+}
+
+export interface GachaPool {
+  id: string;
+  userId: string;
+  poolName: string;
+  fiveStarUp: GachaPrize;
+  fiveStarStandard: GachaPrize[];
+  fourStarItems: GachaPrize[];
+  threeStarItems: GachaPrize[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface GachaHistory {
+  id: string;
+  userId: string;
+  poolId: string;
+  prize: GachaPrize;
+  pullNumber: number;
+  isGuaranteed: boolean;
+  createdAt: string;
+}
+
+export interface GachaPity {
+  userId: string;
+  poolId: string;
+  pullsSinceLast4Star: number;
+  pullsSinceLast5Star: number;
+  totalPulls: number;
+  lost5050: boolean; // 大保底 marker
 }
 
 // --- Task Rarity Config ---
