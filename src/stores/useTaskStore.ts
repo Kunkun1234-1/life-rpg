@@ -15,6 +15,7 @@ interface CreateTaskData {
   baseStardust: number;
   staminaCost: number;
   deadline?: string;
+  mainlineId?: string;
   subtasks?: Omit<Task, 'id' | 'createdAt' | 'isFirstCompletion' | 'status' | 'userId'>[];
 }
 
@@ -54,6 +55,7 @@ export const useTaskStore = create<TaskStore>()(
           status: 'pending',
           isFirstCompletion: true,
           deadline: data.deadline,
+          mainlineId: data.mainlineId,
           createdAt: now,
           subtasks: data.subtasks?.map((st) => ({
             ...st,
