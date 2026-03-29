@@ -1,98 +1,99 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Equipment, AttributeKey } from '../types';
+import type { Equipment, EquipmentType, AttributeKey } from '../types';
 import { generateId } from '../lib/gameFormulas';
 
-interface EquipmentStoreState {
-  equipment: Equipment[];
-  equippedItems: Equipment[];
-  addEquipment: (item: Omit<Equipment, 'id' | 'userId' | 'createdAt'>) => void;
-  equipItem: (id: string) => void;
-  unequipItem: (id: string) => void;
-  getEquippedForAttribute: (key: AttributeKey) => Equipment | undefined;
-  getTotalBonus: (key: AttributeKey) => number;
+interface EquipmentCreateData {
+  name: string;
+  type: EquipmentType;
+  attributeKey: AttributeKey;
+  bonusPct?: number; // defaults to 3
 }
 
-const SAMPLE_EQUIPMENT: Equipment[] = [
-  {
-    id: generateId(),
-    userId: 'local',
-    name: '晨跑计划表',
-    type: 'habit',
-    attributeKey: 'body',
-    bonusPct: 5,
-    isEquipped: true,
-    streakDays: 14,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: generateId(),
-    userId: 'local',
-    name: '机械键盘',
-    type: 'tool',
-    attributeKey: 'craft',
-    bonusPct: 3,
-    isEquipped: true,
-    streakDays: 30,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: generateId(),
-    userId: 'local',
-    name: '学习专用书桌',
-    type: 'environment',
-    attributeKey: 'mind',
-    bonusPct: 3,
-    isEquipped: false,
-    streakDays: 7,
-    createdAt: new Date().toISOString(),
-  },
-];
+interface EquipmentStore {
+  equipment: Equipment[];
+  maxSlots: number;
+  createEquipment: (data: EquipmentCreateData) => Equipment;
+  equipItem: (id: string) => void;
+  unequipItem: (id: string) => void;
+  getEquippedBonus: (attrKey: AttributeKey) => number;
+  incrementStreak: (id: string) => void;
+  upgradeEquipment: (id: string) => void;
+}
 
-export const useEquipmentStore = create<EquipmentStoreState>()(
+export const useEquipmentStore = create<EquipmentStore>()(
   persist(
     (set, get) => ({
-      equipment: SAMPLE_EQUIPMENT,
-      equippedItems: SAMPLE_EQUIPMENT.filter(e => e.isEquipped),
+      equipment: [],
+      maxSlots: 3,
 
-      addEquipment: (itemData) => {
+      createEquipment: (data) => {
         const item: Equipment = {
-          ...itemData,
           id: generateId(),
           userId: 'local',
+          name: data.name,
+          type: data.type,
+          attributeKey: data.attributeKey,
+          bonusPct: data.bonusPct ?? 3,
+          isEquipped: false,
+          streakDays: 0,
           createdAt: new Date().toISOString(),
         };
-        set(state => ({ equipment: [...state.equipment, item] }));
+        set((state) => ({ equipment: [...state.equipment, item] }));
+        return item;
       },
 
       equipItem: (id) => {
-        set(state => {
-          const updated = state.equipment.map(e =>
+        const { equipment, maxSlots } = get();
+        const equippedCount = equipment.filter((e) => e.isEquipped).length;
+        const target = equipment.find((e) => e.id === id);
+        if (!target || target.isEquipped) return;
+        if (equippedCount >= maxSlots) return; // no free slots
+        set((state) => ({
+          equipment: state.equipment.map((e) =>
             e.id === id ? { ...e, isEquipped: true } : e
-          );
-          return { equipment: updated, equippedItems: updated.filter(e => e.isEquipped) };
-        });
+          ),
+        }));
       },
 
       unequipItem: (id) => {
-        set(state => {
-          const updated = state.equipment.map(e =>
+        set((state) => ({
+          equipment: state.equipment.map((e) =>
             e.id === id ? { ...e, isEquipped: false } : e
-          );
-          return { equipment: updated, equippedItems: updated.filter(e => e.isEquipped) };
-        });
+          ),
+        }));
       },
 
-      getEquippedForAttribute: (key) => {
-        return get().equipment.find(e => e.attributeKey === key && e.isEquipped);
+      // Returns fraction (e.g. 0.05 for 5%) to add as equipment bonus
+      getEquippedBonus: (attrKey) => {
+        const equipped = get().equipment.filter(
+          (e) => e.isEquipped && e.attributeKey === attrKey
+        );
+        const totalPct = equipped.reduce((sum, e) => sum + e.bonusPct, 0);
+        return totalPct / 100;
       },
 
-      getTotalBonus: (key) => {
-        return get().equipment
-          .filter(e => e.attributeKey === key && e.isEquipped)
-          .reduce((sum, e) => sum + e.bonusPct, 0);
+      incrementStreak: (id) => {
+        set((state) => ({
+          equipment: state.equipment.map((e) =>
+            e.id === id ? { ...e, streakDays: e.streakDays + 1 } : e
+          ),
+        }));
+      },
+
+      // Upgrade from 3% to 5% after 30-day streak
+      upgradeEquipment: (id) => {
+        set((state) => ({
+          equipment: state.equipment.map((e) => {
+            if (e.id !== id) return e;
+            if (e.streakDays >= 30 && e.bonusPct === 3) {
+              return { ...e, bonusPct: 5 };
+            }
+            return e;
+          }),
+        }));
       },
     }),
-    { name: 'equipment-store' }
+    { name: 'life-rpg-equipment' }
   )
 );
