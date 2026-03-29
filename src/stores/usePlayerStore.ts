@@ -1,114 +1,112 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PlayerState, AttributeState, AttributeKey } from '../types';
+import type { AttributeKey } from '../types';
+import { getAdventureLevel, getCurrentTitle } from '../lib/gameFormulas';
 
 interface PlayerStore {
-  player: PlayerState;
-  attributes: AttributeState[];
-  setPlayer: (player: Partial<PlayerState>) => void;
-  addStamina: (amount: number) => void;
+  // State
+  playerName: string;
+  totalExp: number;
+  stardust: number;
+  stamina: number;
+  maxStamina: number;
+  overflowStamina: number;
+  streakDays: number;
+  achievementPoints: number;
+  attributeExp: Record<AttributeKey, number>;
+
+  // Derived getters
+  getAdventureLevel: () => number;
+  getCurrentTitle: () => string;
+
+  // Actions
+  addExp: (amount: number, attrKey: AttributeKey) => void;
   spendStamina: (amount: number) => void;
-  addExp: (amount: number) => void;
+  addStamina: (amount: number) => void;
   addStardust: (amount: number) => void;
   spendStardust: (amount: number) => boolean;
-  addAttributeExp: (key: AttributeKey, amount: number) => void;
+  resetDailyStamina: () => void;
+  incrementStreak: () => void;
+  resetStreak: () => void;
+  addAchievementPoints: (n: number) => void;
+  setPlayerName: (name: string) => void;
 }
 
-const DEFAULT_PLAYER: PlayerState = {
-  id: 'local',
-  email: '',
-  playerName: '旅行者',
-  totalExp: 0,
-  adventureLevel: 1,
-  stardust: 100,
-  stamina: 80,
-  maxStamina: 100,
-  overflowStamina: 0,
-  streakDays: 0,
-  currentTitle: '初入尘世',
-  achievementPoints: 0,
-  createdAt: new Date().toISOString(),
+const defaultAttributeExp: Record<AttributeKey, number> = {
+  body: 0,
+  mind: 0,
+  craft: 0,
+  social: 0,
+  spirit: 0,
+  wealth: 0,
 };
-
-const DEFAULT_ATTRIBUTES: AttributeState[] = [
-  { key: 'body', exp: 0, level: 1 },
-  { key: 'mind', exp: 0, level: 1 },
-  { key: 'craft', exp: 0, level: 1 },
-  { key: 'social', exp: 0, level: 1 },
-  { key: 'spirit', exp: 0, level: 1 },
-  { key: 'wealth', exp: 0, level: 1 },
-];
 
 export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => ({
-      player: DEFAULT_PLAYER,
-      attributes: DEFAULT_ATTRIBUTES,
+      playerName: '冒险者',
+      totalExp: 0,
+      stardust: 100,
+      stamina: 100,
+      maxStamina: 100,
+      overflowStamina: 150,
+      streakDays: 0,
+      achievementPoints: 0,
+      attributeExp: { ...defaultAttributeExp },
 
-      setPlayer: (partial) =>
-        set((state) => ({ player: { ...state.player, ...partial } })),
+      getAdventureLevel: () => getAdventureLevel(get().totalExp),
+      getCurrentTitle: () => getCurrentTitle(getAdventureLevel(get().totalExp)),
 
-      addStamina: (amount) =>
+      addExp: (amount, attrKey) =>
         set((state) => ({
-          player: {
-            ...state.player,
-            stamina: Math.min(state.player.stamina + amount, state.player.maxStamina),
+          totalExp: state.totalExp + amount,
+          attributeExp: {
+            ...state.attributeExp,
+            [attrKey]: state.attributeExp[attrKey] + amount,
           },
         })),
 
       spendStamina: (amount) =>
         set((state) => ({
-          player: {
-            ...state.player,
-            stamina: Math.max(state.player.stamina - amount, 0),
-          },
+          stamina: Math.max(0, state.stamina - amount),
         })),
 
-      addExp: (amount) => {
-        const { player } = get();
-        const newExp = player.totalExp + amount;
-        // Simple level calculation: 100 * 1.15^(Lv-1) per level
-        let level = 1;
-        let expNeeded = 0;
-        while (expNeeded + Math.round(100 * Math.pow(1.15, level - 1)) <= newExp) {
-          expNeeded += Math.round(100 * Math.pow(1.15, level - 1));
-          level++;
-        }
+      addStamina: (amount) =>
         set((state) => ({
-          player: { ...state.player, totalExp: newExp, adventureLevel: level },
-        }));
-      },
+          stamina: Math.min(state.stamina + amount, state.overflowStamina),
+        })),
 
       addStardust: (amount) =>
         set((state) => ({
-          player: { ...state.player, stardust: state.player.stardust + amount },
+          stardust: state.stardust + amount,
         })),
 
       spendStardust: (amount) => {
-        const { player } = get();
-        if (player.stardust < amount) return false;
-        set((state) => ({
-          player: { ...state.player, stardust: state.player.stardust - amount },
-        }));
+        const state = get();
+        if (state.stardust < amount) return false;
+        set({ stardust: state.stardust - amount });
         return true;
       },
 
-      addAttributeExp: (key, amount) =>
-        set((state) => {
-          const attrs = state.attributes.map((a) => {
-            if (a.key !== key) return a;
-            const newExp = a.exp + amount;
-            let level = 1;
-            let expNeeded = 0;
-            while (expNeeded + Math.round(50 * Math.pow(1.12, level - 1)) <= newExp) {
-              expNeeded += Math.round(50 * Math.pow(1.12, level - 1));
-              level++;
-            }
-            return { ...a, exp: newExp, level };
-          });
-          return { attributes: attrs };
-        }),
+      resetDailyStamina: () =>
+        set((state) => ({
+          stamina: Math.min(state.stamina + state.maxStamina, state.overflowStamina),
+        })),
+
+      incrementStreak: () =>
+        set((state) => ({
+          streakDays: state.streakDays + 1,
+        })),
+
+      resetStreak: () => set({ streakDays: 0 }),
+
+      addAchievementPoints: (n) =>
+        set((state) => ({
+          achievementPoints: state.achievementPoints + n,
+        })),
+
+      setPlayerName: (name) => set({ playerName: name }),
     }),
-    { name: 'liferpg-player' }
+    { name: 'life-rpg-player' }
   )
 );

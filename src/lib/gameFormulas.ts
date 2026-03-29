@@ -1,5 +1,4 @@
 import { TITLES, STAMINA } from './constants';
-import type { TaskRarity, AttributeKey } from '../types';
 
 // --- Adventure Level XP Curve ---
 // Per level required: 100 * 1.15^(Lv-1)
