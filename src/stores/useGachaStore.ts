@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GachaPool, GachaHistory, GachaPity, GachaPrize } from '../types';
+import type { GachaPool, GachaHistory, GachaPity, GachaPrize } from '../types';
 import { GACHA_CONFIG } from '../lib/constants';
 import { calculatePullRarity, selectPrize } from '../lib/gachaEngine';
 import { usePlayerStore } from './usePlayerStore';

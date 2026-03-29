@@ -1,4 +1,4 @@
-import { GachaPool, GachaPity, GachaPrize, GachaRarity } from '../types';
+import type { GachaPool, GachaPity, GachaPrize, GachaRarity } from '../types';
 import { GACHA_CONFIG } from './constants';
 
 export function calculatePullRarity(pity: GachaPity): GachaRarity {

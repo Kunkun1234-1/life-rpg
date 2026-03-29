@@ -5,11 +5,13 @@ import { useShopStore } from '../../stores/useShopStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { PERMANENT_SHOP_ITEMS, ROTATING_SHOP_ITEMS } from '../../lib/constants';
 import type { ShopCategory, ShopItem } from '../../types';
+import GachaPanel from './GachaPanel';
 
 const TAB_LABELS: { key: ShopCategory; label: string }[] = [
   { key: 'instant_reward', label: '即时奖励' },
   { key: 'item_shop', label: '道具商店' },
   { key: 'stored_reward', label: '存储奖励' },
+  { key: 'gacha', label: '祈愿' },
 ];
 
 export const ShopPage: React.FC = () => {
@@ -77,7 +79,9 @@ export const ShopPage: React.FC = () => {
         </div>
 
         {/* Items Grid */}
-        {tabItems.length === 0 ? (
+        {activeTab === 'gacha' ? (
+          <GachaPanel />
+        ) : tabItems.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2">
             <p className="text-white/30 text-sm">
               {activeTab === 'instant_reward' || activeTab === 'stored_reward'

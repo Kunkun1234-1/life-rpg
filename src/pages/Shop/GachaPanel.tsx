@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGachaStore } from '../../stores/useGachaStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
-import { GachaPrize, GachaPool } from '../../types';
+import type { GachaPrize, GachaPool } from '../../types';
 import { GACHA_CONFIG } from '../../lib/constants';
 
 const RARITY_COLORS: Record<number, string> = {
