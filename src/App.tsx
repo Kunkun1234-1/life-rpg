@@ -20,6 +20,7 @@ function App() {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="achievements" element={<AchievementsPage />} />
           <Route path="principles" element={<PrinciplesPage />} />
+          <Route path="achievements" element={<AchievementsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

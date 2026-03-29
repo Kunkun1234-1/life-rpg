@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip,
 } from 'recharts';
@@ -60,6 +61,7 @@ const BreakthroughPanel: React.FC<{ adventureLevel: number; attributeExp: Record
 };
 
 const CharacterPage: React.FC = () => {
+  const navigate = useNavigate();
   const playerName = usePlayerStore(s => s.playerName);
   const getCurrentTitle = usePlayerStore(s => s.getCurrentTitle);
   const totalExp = usePlayerStore(s => s.totalExp);
@@ -202,6 +204,20 @@ const CharacterPage: React.FC = () => {
       >
         <GlassCard className="p-5">
           <AchievementWall />
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => navigate('/achievements')}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{
+                background: 'rgba(255,213,79,0.08)',
+                border: '1px solid rgba(255,213,79,0.2)',
+                color: '#FFD54F',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              查看全部成就 →
+            </button>
+          </div>
         </GlassCard>
       </motion.div>
     </div>
