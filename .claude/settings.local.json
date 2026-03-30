@@ -11,7 +11,10 @@
       "Bash(export PATH=\"/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin:$PATH\")",
       "Bash(/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin/node /home/wangkun/Downloads/gmaelife/node_modules/.bin/vite build)",
       "WebSearch",
-      "Bash(export PATH=\"/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin:/usr/bin:/usr/local/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$PATH\" cd /home/wangkun/Downloads/gmaelife npm run build)"
+      "Bash(export PATH=\"/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin:/usr/bin:/usr/local/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$PATH\" cd /home/wangkun/Downloads/gmaelife npm run build)",
+      "Read(//usr/bin/**)",
+      "Bash(export PATH=\"/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin:/usr/bin:/bin:$PATH\")",
+      "Bash(npm run:*)"
     ]
   }
 }

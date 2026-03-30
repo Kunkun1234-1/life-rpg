@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 type Tab = 'login' | 'register';
-type Phase = 'splash' | 'doors' | 'login';
+type Phase = 'logo' | 'door' | 'login';
 
 // Generate star data once outside component to avoid re-renders
 function generateStars(count: number) {
@@ -17,23 +17,31 @@ function generateStars(count: number) {
   }));
 }
 
-/* ========== Splash Screen ========== */
-function SplashScreen({ onStart }: { onStart: () => void }) {
-  const [showPrompt, setShowPrompt] = useState(false);
+// Time-of-day logic for door video
+function getDoorVideo(): string {
+  const hour = new Date().getHours();
+  return (hour >= 6 && hour < 18)
+    ? '/videos/login/morningdoor.webm'
+    : '/videos/login/nightdoor.webm';
+}
+
+/* ========== Logo Screen ========== */
+function LogoScreen({ onComplete }: { onComplete: () => void }) {
   const stars = useMemo(() => generateStars(25), []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowPrompt(true), 2000);
+    const timer = setTimeout(onComplete, 2500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [onComplete]);
 
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
       style={{ background: '#000' }}
-      onClick={onStart}
+      onClick={onComplete}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* Particle stars */}
@@ -75,86 +83,69 @@ function SplashScreen({ onStart }: { onStart: () => void }) {
           className="mt-4 text-base tracking-[0.5em]"
           style={{ color: 'rgba(255, 255, 255, 0.4)', fontFamily: '"Noto Serif SC", serif' }}
         >
-          人生冒险
+          人生冒险 · 数值系统
         </p>
+        {/* Gold decorative line */}
+        <div className="flex items-center justify-center mt-3">
+          <div className="h-px w-12" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,213,79,0.5), transparent)' }} />
+          <div className="mx-2 w-1.5 h-1.5 rotate-45" style={{ background: '#FFD54F', opacity: 0.4 }} />
+          <div className="h-px w-12" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,213,79,0.5), transparent)' }} />
+        </div>
       </motion.div>
 
-      {/* Click prompt */}
-      <AnimatePresence>
-        {showPrompt && (
-          <motion.p
-            className="absolute bottom-24 text-sm z-10"
-            style={{
-              color: 'rgba(255, 255, 255, 0.3)',
-              fontFamily: '"Noto Serif SC", serif',
-              animation: 'login-pulse 2s infinite ease-in-out',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-          >
-            点击任意处开始
-          </motion.p>
-        )}
-      </AnimatePresence>
+      {/* Click to skip hint */}
+      <motion.p
+        className="absolute bottom-24 text-sm z-10"
+        style={{
+          color: 'rgba(255, 255, 255, 0.3)',
+          fontFamily: '"Noto Serif SC", serif',
+          animation: 'login-pulse 2s infinite ease-in-out',
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 1.5 }}
+      >
+        点击任意处跳过
+      </motion.p>
     </motion.div>
   );
 }
 
-/* ========== Door Animation ========== */
-function DoorAnimation({ onComplete }: { onComplete: () => void }) {
+/* ========== Door Video Screen ========== */
+function DoorVideoScreen({ onComplete }: { onComplete: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const doorVideo = useMemo(() => getDoorVideo(), []);
+
   useEffect(() => {
-    const timer = setTimeout(onComplete, 1200);
-    return () => clearTimeout(timer);
+    // Fallback: if video doesn't start playing within 1s, skip
+    const fallbackTimer = setTimeout(() => {
+      if (videoRef.current && videoRef.current.readyState < 2) {
+        onComplete();
+      }
+    }, 1000);
+    return () => clearTimeout(fallbackTimer);
   }, [onComplete]);
 
-  const panelStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    width: '50%',
-    height: '100%',
-    background: 'linear-gradient(180deg, #0a0a1a 0%, #0d0d24 50%, #0a0a1a 100%)',
-    zIndex: 40,
-  };
-
-  // Subtle vertical line pattern overlay
-  const lineOverlay: React.CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage:
-      'repeating-linear-gradient(90deg, rgba(255,213,79,0.02) 0px, rgba(255,213,79,0.02) 1px, transparent 1px, transparent 60px)',
-  };
-
   return (
-    <>
-      {/* Left door */}
-      <motion.div
-        style={{ ...panelStyle, left: 0 }}
-        initial={{ x: '0%' }}
-        animate={{ x: '-100%' }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+    <motion.div
+      className="fixed inset-0 z-40"
+      style={{ background: '#000' }}
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        onEnded={onComplete}
+        onError={onComplete}
       >
-        <div style={lineOverlay} />
-        {/* Center seam line */}
-        <div
-          className="absolute top-0 right-0 w-px h-full"
-          style={{ background: 'linear-gradient(180deg, transparent 10%, rgba(255,213,79,0.15) 50%, transparent 90%)' }}
-        />
-      </motion.div>
-      {/* Right door */}
-      <motion.div
-        style={{ ...panelStyle, right: 0 }}
-        initial={{ x: '0%' }}
-        animate={{ x: '100%' }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-      >
-        <div style={lineOverlay} />
-        <div
-          className="absolute top-0 left-0 w-px h-full"
-          style={{ background: 'linear-gradient(180deg, transparent 10%, rgba(255,213,79,0.15) 50%, transparent 90%)' }}
-        />
-      </motion.div>
-    </>
+        <source src={doorVideo} type="video/webm" />
+      </video>
+    </motion.div>
   );
 }
 
@@ -227,13 +218,13 @@ function LoginFormView() {
       </video>
 
       {/* Dark overlay */}
-      <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.6)', zIndex: 1 }} />
+      <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.55)', zIndex: 1 }} />
 
       {/* Form card */}
       <motion.div
         className="relative z-10 w-full max-w-md"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
         <div
@@ -461,29 +452,29 @@ function SubmitButton({ loading, text }: { loading: boolean; text: string }) {
 
 /* ========== Main LoginPage ========== */
 export default function LoginPage() {
-  const [phase, setPhase] = useState<Phase>('splash');
+  const [phase, setPhase] = useState<Phase>('logo');
 
-  const handleSplashClick = useCallback(() => {
-    setPhase('doors');
+  const handleLogoComplete = useCallback(() => {
+    setPhase('door');
   }, []);
 
-  const handleDoorsComplete = useCallback(() => {
+  const handleDoorComplete = useCallback(() => {
     setPhase('login');
   }, []);
 
   return (
-    <div className="fixed inset-0" style={{ background: '#0a0a1a' }}>
-      {/* Login form is always rendered behind doors */}
-      {phase !== 'splash' && <LoginFormView />}
+    <div className="fixed inset-0" style={{ background: '#000' }}>
+      {/* Login form is always rendered behind overlays once past logo */}
+      {phase === 'login' && <LoginFormView />}
 
-      {/* Door animation overlay */}
+      {/* Door video overlay */}
       <AnimatePresence>
-        {phase === 'doors' && <DoorAnimation onComplete={handleDoorsComplete} />}
+        {phase === 'door' && <DoorVideoScreen onComplete={handleDoorComplete} />}
       </AnimatePresence>
 
-      {/* Splash screen overlay */}
+      {/* Logo screen overlay */}
       <AnimatePresence>
-        {phase === 'splash' && <SplashScreen onStart={handleSplashClick} />}
+        {phase === 'logo' && <LogoScreen onComplete={handleLogoComplete} />}
       </AnimatePresence>
     </div>
   );
