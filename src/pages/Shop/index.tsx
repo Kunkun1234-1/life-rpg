@@ -5,6 +5,8 @@ import { useShopStore } from '../../stores/useShopStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { PERMANENT_SHOP_ITEMS, ROTATING_SHOP_ITEMS } from '../../lib/constants';
 import type { ShopCategory, ShopItem } from '../../types';
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 import GachaPanel from './GachaPanel';
 
 const TAB_LABELS: { key: ShopCategory; label: string }[] = [
@@ -14,11 +16,21 @@ const TAB_LABELS: { key: ShopCategory; label: string }[] = [
   { key: 'gacha', label: '祈愿' },
 ];
 
+const PRICE_PRESETS = [
+  { label: '小奖励', range: '50-100', examples: '一杯奶茶、一份零食' },
+  { label: '中奖励', range: '200-500', examples: '一顿好吃的、一个小物件' },
+  { label: '大奖励', range: '1000+', examples: '大餐、购买想要的东西' },
+];
+
 export const ShopPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ShopCategory>('instant_reward');
   const [inventoryCollapsed, setInventoryCollapsed] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [rewardName, setRewardName] = useState('');
+  const [rewardDesc, setRewardDesc] = useState('');
+  const [rewardPrice, setRewardPrice] = useState(50);
 
-  const { customRewards, inventory, buyItem, monthlyPurchases } = useShopStore();
+  const { customRewards, inventory, buyItem, addCustomReward, removeCustomReward, monthlyPurchases } = useShopStore();
   const stardust = usePlayerStore((s) => s.stardust);
 
   const systemItems: ShopItem[] = [...PERMANENT_SHOP_ITEMS, ...ROTATING_SHOP_ITEMS].map((item, i) => ({
@@ -39,12 +51,35 @@ export const ShopPage: React.FC = () => {
     buyItem(item);
   };
 
+  const handleAddReward = () => {
+    if (!rewardName.trim()) return;
+    addCustomReward({
+      name: rewardName.trim(),
+      description: rewardDesc.trim() || rewardName.trim(),
+      category: activeTab === 'stored_reward' ? 'stored_reward' : 'instant_reward',
+      price: rewardPrice,
+      isSystem: false,
+      effectType: 'custom',
+    });
+    setRewardName('');
+    setRewardDesc('');
+    setRewardPrice(50);
+    setShowAddModal(false);
+  };
+
   function getPurchaseCount(itemId: string): number {
     const d = new Date();
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const purchaseKey = `${monthKey}:${itemId}`;
     return monthlyPurchases[purchaseKey] ?? 0;
   }
+
+  const openAddModal = () => {
+    setRewardName('');
+    setRewardDesc('');
+    setRewardPrice(50);
+    setShowAddModal(true);
+  };
 
   return (
     <div className="flex h-full gap-4 p-4" style={{ background: 'linear-gradient(135deg, #0a0a1a, #1a0a2e)', minHeight: '100vh' }}>
@@ -90,7 +125,7 @@ export const ShopPage: React.FC = () => {
             </p>
             {(activeTab === 'instant_reward' || activeTab === 'stored_reward') && (
               <button
-                onClick={() => {/* TODO: open add reward modal */}}
+                onClick={openAddModal}
                 className="mt-2 px-4 py-2 rounded-lg text-sm"
                 style={{ background: 'rgba(255,213,79,0.15)', color: '#FFD54F', border: '1px solid rgba(255,213,79,0.3)' }}
               >
@@ -100,36 +135,22 @@ export const ShopPage: React.FC = () => {
           </div>
         ) : activeTab === 'item_shop' ? (
           <div className="space-y-4">
-            {/* Permanent items section */}
             {tabItems.filter(item => !item.isRotating).length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,213,79,0.6)' }}>常驻道具</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {tabItems.filter(item => !item.isRotating).map((item) => (
-                    <ShopItemCard
-                      key={item.id}
-                      item={item}
-                      purchaseCount={getPurchaseCount(item.id)}
-                      canAfford={stardust >= item.price}
-                      onBuy={() => handleBuy(item)}
-                    />
+                    <ShopItemCard key={item.id} item={item} purchaseCount={getPurchaseCount(item.id)} canAfford={stardust >= item.price} onBuy={() => handleBuy(item)} />
                   ))}
                 </div>
               </div>
             )}
-            {/* Rotating items section */}
             {tabItems.filter(item => item.isRotating).length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgba(206,147,216,0.7)' }}>轮换道具</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {tabItems.filter(item => item.isRotating).map((item) => (
-                    <ShopItemCard
-                      key={item.id}
-                      item={item}
-                      purchaseCount={getPurchaseCount(item.id)}
-                      canAfford={stardust >= item.price}
-                      onBuy={() => handleBuy(item)}
-                    />
+                    <ShopItemCard key={item.id} item={item} purchaseCount={getPurchaseCount(item.id)} canAfford={stardust >= item.price} onBuy={() => handleBuy(item)} />
                   ))}
                 </div>
               </div>
@@ -139,17 +160,21 @@ export const ShopPage: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {tabItems.map((item) => (
-                <ShopItemCard
-                  key={item.id}
-                  item={item}
-                  purchaseCount={getPurchaseCount(item.id)}
-                  canAfford={stardust >= item.price}
-                  onBuy={() => handleBuy(item)}
-                />
+                <div key={item.id} className="relative group">
+                  <ShopItemCard item={item} purchaseCount={getPurchaseCount(item.id)} canAfford={stardust >= item.price} onBuy={() => handleBuy(item)} />
+                  {!item.isSystem && (
+                    <button
+                      onClick={() => removeCustomReward(item.id)}
+                      className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: 'rgba(255,100,100,0.3)', color: '#ff6b6b' }}
+                      title="删除奖励"
+                    >✕</button>
+                  )}
+                </div>
               ))}
             </div>
             <button
-              onClick={() => {/* TODO: open add reward modal */}}
+              onClick={openAddModal}
               className="px-4 py-2 rounded-lg text-sm"
               style={{ background: 'rgba(255,213,79,0.15)', color: '#FFD54F', border: '1px solid rgba(255,213,79,0.3)' }}
             >
@@ -160,15 +185,77 @@ export const ShopPage: React.FC = () => {
       </div>
 
       {/* Inventory sidebar */}
-      <div
-        className="shrink-0 transition-all"
-        style={{ width: inventoryCollapsed ? '48px' : '240px' }}>
-        <InventoryPanel
-          inventory={inventory}
-          collapsed={inventoryCollapsed}
-          onToggle={() => setInventoryCollapsed((v) => !v)}
-        />
+      <div className="shrink-0 transition-all" style={{ width: inventoryCollapsed ? '48px' : '240px' }}>
+        <InventoryPanel inventory={inventory} collapsed={inventoryCollapsed} onToggle={() => setInventoryCollapsed((v) => !v)} />
       </div>
+
+      {/* Add Custom Reward Modal */}
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title={activeTab === 'stored_reward' ? '添加存储奖励' : '添加即时奖励'}>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-white/50 block mb-1">奖励名称 *</label>
+            <input
+              value={rewardName}
+              onChange={(e) => setRewardName(e.target.value)}
+              placeholder="如：一杯奶茶、看一部电影"
+              className="w-full px-3 py-2 rounded-lg text-sm text-white"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-white/50 block mb-1">描述</label>
+            <input
+              value={rewardDesc}
+              onChange={(e) => setRewardDesc(e.target.value)}
+              placeholder="奖励的详细描述..."
+              className="w-full px-3 py-2 rounded-lg text-sm text-white"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-white/50 block mb-1">星尘价格</label>
+            <input
+              type="number"
+              value={rewardPrice}
+              onChange={(e) => setRewardPrice(Math.max(1, parseInt(e.target.value) || 1))}
+              min={1}
+              className="w-full px-3 py-2 rounded-lg text-sm text-white"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+            <div className="flex gap-2 mt-2">
+              {PRICE_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => setRewardPrice(parseInt(p.range))}
+                  className="px-2 py-1 rounded text-xs transition-all"
+                  style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  {p.label} ({p.range})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-xs text-white/30">
+              {activeTab === 'stored_reward'
+                ? '💡 存储奖励：兑换后存入背包，择日使用。适合"攒够了但现在不方便享受"的奖励。'
+                : '💡 即时奖励：兑换后立即消费，不进背包。适合当场就能享受的小奖励。'}
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="primary" onClick={handleAddReward} disabled={!rewardName.trim()}>
+              添加奖励
+            </Button>
+            <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+              取消
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
