@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { usePlayerStore } from '../../stores/usePlayerStore';
 
 interface NavItem {
   to: string;
@@ -17,6 +19,13 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar() {
+  const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
+  const playerName = usePlayerStore((s) => s.playerName);
+
+  // Get the first character of player name for avatar
+  const avatarChar = playerName ? playerName.charAt(0) : '旅';
+
   return (
     <aside
       className="fixed left-0 top-0 h-full z-40 flex flex-col items-center py-4 gap-1"
@@ -28,7 +37,7 @@ export function Sidebar() {
       }}
     >
       {/* Player Avatar */}
-      <div className="mb-4 mt-1">
+      <div className="mb-4 mt-1" title={user?.email ?? ''}>
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
           style={{
@@ -36,7 +45,7 @@ export function Sidebar() {
             color: '#0a0a1a',
           }}
         >
-          旅
+          {avatarChar}
         </div>
       </div>
 
@@ -71,13 +80,14 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Settings at bottom */}
+      {/* Logout at bottom */}
       <button
-        className="w-full flex flex-col items-center justify-center py-3 px-1 text-gray-500 hover:text-gray-200 transition-colors"
-        title="设置"
+        onClick={signOut}
+        className="w-full flex flex-col items-center justify-center py-3 px-1 text-gray-500 hover:text-red-400 transition-colors"
+        title="退出登录"
       >
-        <span className="text-xl leading-none">⚙️</span>
-        <span className="text-[9px] mt-1 leading-none">设置</span>
+        <span className="text-xl leading-none">🚪</span>
+        <span className="text-[9px] mt-1 leading-none">退出</span>
       </button>
     </aside>
   );

@@ -10,8 +10,11 @@ import { useAchievementStore } from '../../stores/useAchievementStore';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { useBossStore } from '../../stores/useBossStore';
 import { useMainlineStore } from '../../stores/useMainlineStore';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { loadUserData, subscribeSyncAll } from '../../lib/syncEngine';
 
 export function AppLayout() {
+  const user = useAuthStore((s) => s.user);
   const totalExp = usePlayerStore((s) => s.totalExp);
   const getAdventureLevel = usePlayerStore((s) => s.getAdventureLevel);
   const getCurrentTitle = usePlayerStore((s) => s.getCurrentTitle);
@@ -20,6 +23,35 @@ export function AppLayout() {
   const achievements = useAchievementStore((s) => s.achievements);
   const resetDailyTasks = useTaskStore((s) => s.resetDailyTasks);
   const checkWeeklyBoss = useBossStore((s) => s.checkWeeklyBoss);
+
+  // Data loading state
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const syncUnsubRef = useRef<(() => void) | null>(null);
+
+  // Load data from Supabase on mount, then subscribe to sync
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    async function init() {
+      await loadUserData(user!.id);
+      if (cancelled) return;
+      setDataLoaded(true);
+      // Subscribe to store changes for sync
+      syncUnsubRef.current = subscribeSyncAll(user!.id);
+    }
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (syncUnsubRef.current) {
+        syncUnsubRef.current();
+        syncUnsubRef.current = null;
+      }
+    };
+  }, [user]);
 
   // Track level for level-up detection
   const prevLevelRef = useRef(getAdventureLevel());
@@ -87,6 +119,7 @@ export function AppLayout() {
 
   // Daily reset check on mount
   useEffect(() => {
+    if (!dataLoaded) return;
     const lastResetKey = 'life-rpg-last-daily-reset';
     const today = new Date().toDateString();
     const lastReset = localStorage.getItem(lastResetKey);
@@ -100,7 +133,32 @@ export function AppLayout() {
       checkWeeklyBoss(weeklyTasks.length, weeklyCompleted);
       localStorage.setItem(lastResetKey, today);
     }
-  }, [resetDailyStamina, resetDailyTasks, checkWeeklyBoss]);
+  }, [dataLoaded, resetDailyStamina, resetDailyTasks, checkWeeklyBoss]);
+
+  // Show loading while data is being fetched
+  if (!dataLoaded) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a0a1a 100%)',
+        }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin"
+            style={{
+              borderTopColor: '#FFD54F',
+              borderRightColor: '#FFD54F',
+            }}
+          />
+          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+            正在同步数据...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
