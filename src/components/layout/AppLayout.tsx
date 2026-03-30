@@ -10,6 +10,7 @@ import { useAchievementStore } from '../../stores/useAchievementStore';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { useBossStore } from '../../stores/useBossStore';
 import { useMainlineStore } from '../../stores/useMainlineStore';
+import { useShopStore } from '../../stores/useShopStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { loadUserData, subscribeSyncAll } from '../../lib/syncEngine';
 
@@ -126,6 +127,7 @@ export function AppLayout() {
     if (lastReset !== today) {
       resetDailyStamina();
       resetDailyTasks();
+      useShopStore.getState().clearExpiredBuffs();
       // Check weekly boss with current weekly task counts
       const tasks = useTaskStore.getState().tasks;
       const weeklyTasks = tasks.filter(t => t.cycle === 'weekly');

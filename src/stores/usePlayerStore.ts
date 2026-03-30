@@ -6,6 +6,7 @@ import { getAdventureLevel, getCurrentTitle } from '../lib/gameFormulas';
 interface PlayerStore {
   // State
   playerName: string;
+  avatarUrl: string | null;
   totalExp: number;
   stardust: number;
   stamina: number;
@@ -30,6 +31,7 @@ interface PlayerStore {
   resetStreak: () => void;
   addAchievementPoints: (n: number) => void;
   setPlayerName: (name: string) => void;
+  setAvatar: (url: string | null) => void;
 }
 
 const defaultAttributeExp: Record<AttributeKey, number> = {
@@ -45,6 +47,7 @@ export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => ({
       playerName: '冒险者',
+      avatarUrl: null,
       totalExp: 0,
       stardust: 10000, // TODO: change back to 100 after testing
       stamina: 100,
@@ -106,6 +109,7 @@ export const usePlayerStore = create<PlayerStore>()(
         })),
 
       setPlayerName: (name) => set({ playerName: name }),
+      setAvatar: (url) => set({ avatarUrl: url }),
     }),
     { name: 'life-rpg-player' }
   )

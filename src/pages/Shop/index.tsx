@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ShopItemCard } from './ShopItemCard';
 import { InventoryPanel } from './InventoryPanel';
 import { useShopStore } from '../../stores/useShopStore';
@@ -8,6 +8,12 @@ import type { ShopCategory, ShopItem } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import GachaPanel from './GachaPanel';
+
+const EMOJI_PRESETS = [
+  '🎁', '🎮', '🍽️', '🎬', '☕', '🍰', '🧋', '🍿', '🍦', '📖',
+  '🎵', '🏖️', '✈️', '🛍️', '💪', '🎨', '📸', '🌳', '🧘', '🎧',
+  '🍜', '🥡', '📺', '😴', '🍎', '🤝', '🏃', '🔥', '💎', '⭐',
+];
 
 const TAB_LABELS: { key: ShopCategory; label: string }[] = [
   { key: 'instant_reward', label: '即时奖励' },
@@ -29,6 +35,10 @@ export const ShopPage: React.FC = () => {
   const [rewardName, setRewardName] = useState('');
   const [rewardDesc, setRewardDesc] = useState('');
   const [rewardPrice, setRewardPrice] = useState(50);
+  const [rewardEmoji, setRewardEmoji] = useState('🎁');
+  const [rewardIconUrl, setRewardIconUrl] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const iconInputRef = useRef<HTMLInputElement>(null);
 
   const { customRewards, inventory, buyItem, addCustomReward, removeCustomReward, monthlyPurchases } = useShopStore();
   const stardust = usePlayerStore((s) => s.stardust);
@@ -60,11 +70,38 @@ export const ShopPage: React.FC = () => {
       price: rewardPrice,
       isSystem: false,
       effectType: 'custom',
+      emoji: rewardIconUrl ? undefined : rewardEmoji,
+      iconUrl: rewardIconUrl ?? undefined,
     });
     setRewardName('');
     setRewardDesc('');
     setRewardPrice(50);
+    setRewardEmoji('🎁');
+    setRewardIconUrl(null);
     setShowAddModal(false);
+  };
+
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d')!;
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, 64, 64);
+        setRewardIconUrl(canvas.toDataURL('image/png', 0.9));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   function getPurchaseCount(itemId: string): number {
@@ -78,6 +115,9 @@ export const ShopPage: React.FC = () => {
     setRewardName('');
     setRewardDesc('');
     setRewardPrice(50);
+    setRewardEmoji('🎁');
+    setRewardIconUrl(null);
+    setShowEmojiPicker(false);
     setShowAddModal(true);
   };
 
@@ -192,6 +232,54 @@ export const ShopPage: React.FC = () => {
       {/* Add Custom Reward Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title={activeTab === 'stored_reward' ? '添加存储奖励' : '添加即时奖励'}>
         <div className="space-y-4">
+          {/* Icon selector */}
+          <div>
+            <label className="text-xs text-white/50 block mb-1">图标</label>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setShowEmojiPicker((v) => !v); setRewardIconUrl(null); }}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                title="选择 Emoji"
+              >
+                {rewardIconUrl ? (
+                  <img src={rewardIconUrl} alt="" className="w-8 h-8 rounded object-cover" />
+                ) : (
+                  rewardEmoji
+                )}
+              </button>
+              <button
+                onClick={() => iconInputRef.current?.click()}
+                className="text-xs px-3 py-1.5 rounded-lg transition-all"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                上传图片
+              </button>
+              {rewardIconUrl && (
+                <button
+                  onClick={() => setRewardIconUrl(null)}
+                  className="text-xs text-white/30 hover:text-white/50"
+                >
+                  清除图片
+                </button>
+              )}
+              <input ref={iconInputRef} type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+            </div>
+            {showEmojiPicker && !rewardIconUrl && (
+              <div className="mt-2 p-2 rounded-lg grid grid-cols-10 gap-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {EMOJI_PRESETS.map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => { setRewardEmoji(e); setShowEmojiPicker(false); }}
+                    className="w-8 h-8 rounded flex items-center justify-center text-lg hover:bg-white/10 transition-colors"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="text-xs text-white/50 block mb-1">奖励名称 *</label>
             <input

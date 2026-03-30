@@ -39,6 +39,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const [expanded, setExpanded] = useState(false);
   const completeTask = useTaskStore(s => s.completeTask);
   const completeSubtask = useTaskStore(s => s.completeSubtask);
+  const updateTask = useTaskStore(s => s.updateTask);
 
   const attrInfo = ATTRIBUTE_MAP[task.element];
   const rarityConfig = RARITY_MAP[task.rarity];
@@ -197,6 +198,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                       }}
                     >
                       超额完成 ×1.5
+                    </Button>
+                  </div>
+                )}
+                {task.status === 'completed' && (
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateTask(task.id, { status: 'archived' });
+                      }}
+                    >
+                      归档
                     </Button>
                   </div>
                 )}

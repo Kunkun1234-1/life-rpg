@@ -173,17 +173,17 @@ export const BREAKTHROUGHS: Breakthrough[] = [
 
 // --- System Shop Items (Permanent) ---
 export const PERMANENT_SHOP_ITEMS: Omit<ShopItem, 'id'>[] = [
-  { name: '浓缩体力', description: '使用后当日体力上限 +30', category: 'item_shop', price: 80, isSystem: true, maxPerMonth: 3, effectType: 'stamina_boost', effectValue: 30 },
-  { name: '经验加倍卷轴', description: '使用后当日所有任务经验值 ×1.3', category: 'item_shop', price: 120, isSystem: true, maxPerMonth: 2, effectType: 'exp_boost', effectValue: 1.3 },
-  { name: '星尘加倍卷轴', description: '使用后当日所有任务星尘 ×1.3', category: 'item_shop', price: 120, isSystem: true, maxPerMonth: 2, effectType: 'stardust_boost', effectValue: 1.3 },
-  { name: '休息日令牌', description: '使用后当日所有日常任务视为已完成（获得50%经验）', category: 'item_shop', price: 300, isSystem: true, maxPerMonth: 1, effectType: 'rest_day', effectValue: 0.5 },
+  { name: '浓缩体力', emoji: '⚡', description: '使用后当日体力上限 +30', category: 'item_shop', price: 80, isSystem: true, maxPerMonth: 3, effectType: 'stamina_boost', effectValue: 30 },
+  { name: '经验加倍卷轴', emoji: '📜', description: '使用后当日所有任务经验值 ×1.3', category: 'item_shop', price: 120, isSystem: true, maxPerMonth: 2, effectType: 'exp_boost', effectValue: 1.3 },
+  { name: '星尘加倍卷轴', emoji: '✨', description: '使用后当日所有任务星尘 ×1.3', category: 'item_shop', price: 120, isSystem: true, maxPerMonth: 2, effectType: 'stardust_boost', effectValue: 1.3 },
+  { name: '休息日令牌', emoji: '🛌', description: '使用后当日所有日常任务视为已完成（获得50%经验）', category: 'item_shop', price: 300, isSystem: true, maxPerMonth: 1, effectType: 'rest_day', effectValue: 0.5 },
 ];
 
 // --- System Shop Items (Rotating) ---
 export const ROTATING_SHOP_ITEMS: Omit<ShopItem, 'id'>[] = [
-  { name: '属性共鸣石', description: '使用后指定一个属性，本周该属性经验 +20%', category: 'item_shop', price: 150, isSystem: true, maxPerMonth: 1, effectType: 'attr_resonance', effectValue: 0.2, isRotating: true },
-  { name: '命运罗盘', description: '使用后随机指定一个属性，当日该属性经验 ×1.5', category: 'item_shop', price: 60, isSystem: true, maxPerMonth: 2, effectType: 'fate_compass', effectValue: 1.5, isRotating: true },
-  { name: '时光之沙', description: '使用后将一个已过期的挑战/史诗任务重新激活', category: 'item_shop', price: 200, isSystem: true, maxPerMonth: 1, effectType: 'time_sand', isRotating: true },
+  { name: '属性共鸣石', emoji: '💎', description: '使用后指定一个属性，本周该属性经验 +20%', category: 'item_shop', price: 150, isSystem: true, maxPerMonth: 1, effectType: 'attr_resonance', effectValue: 0.2, isRotating: true },
+  { name: '命运罗盘', emoji: '🧭', description: '使用后随机指定一个属性，当日该属性经验 ×1.5', category: 'item_shop', price: 60, isSystem: true, maxPerMonth: 2, effectType: 'fate_compass', effectValue: 1.5, isRotating: true },
+  { name: '时光之沙', emoji: '⏳', description: '使用后将一个已过期的挑战/史诗任务重新激活', category: 'item_shop', price: 200, isSystem: true, maxPerMonth: 1, effectType: 'time_sand', isRotating: true },
 ];
 
 // --- Default Gacha Pools ---
@@ -205,9 +205,14 @@ export const DEFAULT_GACHA_POOLS: Omit<GachaPool, 'id' | 'userId' | 'createdAt'>
     threeStarItems: [
       { name: '奶茶券', emoji: '🧋', description: '一杯喜欢的奶茶', rarity: 3 },
       { name: '零食包', emoji: '🍿', description: '买一份喜欢的零食', rarity: 3 },
+      { name: '小精致晚餐券', emoji: '🍜', description: '20元精致小餐一顿', rarity: 3 },
+      { name: '小精致外卖券', emoji: '🥡', description: '25元外卖犒劳自己', rarity: 3 },
       { name: '半小时自由', emoji: '⏰', description: '30分钟做任何想做的事', rarity: 3 },
       { name: '音乐时光', emoji: '🎵', description: '安静听30分钟喜欢的音乐', rarity: 3 },
       { name: '散步券', emoji: '🚶', description: '出去散步放松一下', rarity: 3 },
+      { name: '午睡券', emoji: '😴', description: '允许自己睡一个舒服的午觉', rarity: 3 },
+      { name: '冰淇淋券', emoji: '🍦', description: '买一个喜欢的冰淇淋', rarity: 3 },
+      { name: '刷剧半小时', emoji: '📺', description: '看半小时喜欢的剧', rarity: 3 },
     ],
     isActive: true,
   },
@@ -224,13 +229,20 @@ export const DEFAULT_GACHA_POOLS: Omit<GachaPool, 'id' | 'userId' | 'createdAt'>
       { name: '咖啡厅学习', emoji: '☕', description: '去咖啡厅享受一个下午的学习', rarity: 4 },
       { name: '社交聚会', emoji: '🤝', description: '约朋友出去聚一次', rarity: 4 },
       { name: '护肤品', emoji: '✨', description: '买一件小护肤品犒劳自己', rarity: 4 },
+      { name: '大众精致晚餐券', emoji: '🍽️', description: '一顿大众点评精致好评餐厅晚餐', rarity: 4 },
+      { name: '中精致外卖券', emoji: '📦', description: '一份中档精致外卖犒劳自己', rarity: 4 },
     ],
     threeStarItems: [
-      { name: '冥想10分钟', emoji: '🧘', description: '安静冥想放松10分钟', rarity: 3 },
+      { name: '冥想30分钟', emoji: '🧘', description: '安静冥想放松30分钟', rarity: 3 },
       { name: '热饮券', emoji: '☕', description: '一杯温暖的热饮', rarity: 3 },
+      { name: '小精致晚餐券', emoji: '🍜', description: '20元精致小餐一顿', rarity: 3 },
+      { name: '小精致外卖券', emoji: '🥡', description: '25元外卖犒劳自己', rarity: 3 },
       { name: '水果加餐', emoji: '🍎', description: '给自己买份好水果', rarity: 3 },
       { name: '拍照时刻', emoji: '📸', description: '出去拍一些喜欢的照片', rarity: 3 },
-      { name: '伸展放松', emoji: '🤸', description: '做5分钟拉伸运动', rarity: 3 },
+      { name: '伸展放松', emoji: '🤸', description: '做10分钟拉伸运动', rarity: 3 },
+      { name: '播客一集', emoji: '🎧', description: '听一集感兴趣的播客', rarity: 3 },
+      { name: '公园坐坐', emoji: '🌳', description: '去公园坐一会儿放空自己', rarity: 3 },
+      { name: '手写日记', emoji: '📝', description: '花15分钟手写今天的感悟', rarity: 3 },
     ],
     isActive: true,
   },

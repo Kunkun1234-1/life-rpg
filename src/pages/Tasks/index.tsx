@@ -46,6 +46,17 @@ const TasksPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMainlineForm, setShowMainlineForm] = useState(false);
   const [mainlineForm, setMainlineForm] = useState<CreateMainlineFormState>(defaultForm());
+  const [expandedMainlines, setExpandedMainlines] = useState<Set<string>>(new Set());
+  const [showFinished, setShowFinished] = useState(false);
+
+  const toggleExpand = (id: string) => {
+    setExpandedMainlines((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const allTasks = useTaskStore((s) => s.tasks);
   const { mainlineQuests, createMainline, completeMainline, abandonMainline, getActiveMainlines } =
@@ -57,9 +68,9 @@ const TasksPage: React.FC = () => {
     activeTab === 'active'
       ? [...allTasks.filter((t) => t.status === 'pending')].sort((a, b) => b.rarity - a.rarity)
       : activeTab === 'daily_weekly'
-      ? allTasks.filter((t) => t.cycle === 'daily' || t.cycle === 'weekly')
+      ? allTasks.filter((t) => (t.cycle === 'daily' || t.cycle === 'weekly') && t.status !== 'archived')
       : activeTab === 'epic_legend'
-      ? allTasks.filter((t) => t.rarity >= 4)
+      ? allTasks.filter((t) => t.rarity >= 4 && t.status !== 'archived')
       : activeTab === 'history'
       ? allTasks.filter((t) => t.status === 'completed' || t.status === 'archived')
       : [];
@@ -254,42 +265,96 @@ const TasksPage: React.FC = () => {
                   <p className="text-white/40 text-sm">{EMPTY_MESSAGES.mainline}</p>
                 </motion.div>
               ) : (
-                <AnimatePresence mode="popLayout">
+                <div className="space-y-2">
                   {activeMainlines.map((mainline) => {
                     const linkedTasks = allTasks.filter((t) => t.mainlineId === mainline.id);
                     const completedCount = linkedTasks.filter(
                       (t) => t.status === 'completed'
                     ).length;
+                    const isExpanded = expandedMainlines.has(mainline.id);
 
                     return (
                       <motion.div
                         key={mainline.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
                         layout
                       >
-                        <GlassCard className="p-4">
-                          <div className="flex items-start justify-between gap-3 mb-2">
+                        {/* Tree root node */}
+                        <div className="relative pl-6">
+                          {/* Vertical tree line */}
+                          {isExpanded && linkedTasks.length > 0 && (
+                            <div
+                              className="absolute left-[11px] top-[40px] bottom-0 w-px bg-yellow-400/20"
+                            />
+                          )}
+
+                          {/* Root node header */}
+                          <div
+                            className="relative flex items-start gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-white/[0.04]"
+                            style={{
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                            }}
+                            onClick={() => toggleExpand(mainline.id)}
+                          >
+                            {/* Expand arrow */}
+                            <motion.span
+                              className="text-yellow-400/60 text-xs mt-1 shrink-0 select-none"
+                              animate={{ rotate: isExpanded ? 90 : 0 }}
+                              transition={{ duration: 0.15 }}
+                              style={{ position: 'absolute', left: '-18px', top: '14px' }}
+                            >
+                              ▶
+                            </motion.span>
+
                             <div className="flex-1 min-w-0">
-                              <h3
-                                className="text-base font-bold text-yellow-300 truncate"
-                                style={{ fontFamily: 'Noto Serif SC, serif' }}
-                              >
-                                {mainline.title}
-                              </h3>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h3
+                                  className="text-base font-bold text-yellow-300 truncate"
+                                  style={{ fontFamily: 'Noto Serif SC, serif' }}
+                                >
+                                  {mainline.title}
+                                </h3>
+                                <span className="text-xs text-white/25 shrink-0">
+                                  ({completedCount}/{linkedTasks.length})
+                                </span>
+                              </div>
                               {mainline.description && (
-                                <p className="text-xs text-white/50 mt-0.5 line-clamp-2">
+                                <p className="text-xs text-white/50 line-clamp-1">
                                   {mainline.description}
                                 </p>
                               )}
                               {mainline.completionCondition && (
-                                <p className="text-xs text-blue-300/70 mt-1">
+                                <p className="text-xs text-blue-300/60 mt-0.5">
                                   完成条件：{mainline.completionCondition}
                                 </p>
                               )}
+                              {/* Attribute tags inline */}
+                              {mainline.attributeKeys.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {mainline.attributeKeys.map((key) => {
+                                    const attr = ATTRIBUTES.find((a) => a.key === key);
+                                    return attr ? (
+                                      <span
+                                        key={key}
+                                        className="text-[10px] px-1.5 py-0.5 rounded-full border"
+                                        style={{
+                                          borderColor: `${attr.color}30`,
+                                          color: attr.color,
+                                          background: `${attr.color}10`,
+                                        }}
+                                      >
+                                        {attr.emoji} {attr.name}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex gap-1.5 shrink-0">
+
+                            {/* Action buttons */}
+                            <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <button
                                 className="text-xs px-2 py-1 rounded-md bg-green-400/10 text-green-400 border border-green-400/20 hover:bg-green-400/20 transition-colors"
                                 onClick={() => completeMainline(mainline.id)}
@@ -305,95 +370,125 @@ const TasksPage: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Attribute tags */}
-                          {mainline.attributeKeys.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {mainline.attributeKeys.map((key) => {
-                                const attr = ATTRIBUTES.find((a) => a.key === key);
-                                return attr ? (
-                                  <span
-                                    key={key}
-                                    className="text-xs px-2 py-0.5 rounded-full border"
-                                    style={{
-                                      borderColor: `${attr.color}40`,
-                                      color: attr.color,
-                                      background: `${attr.color}15`,
-                                    }}
-                                  >
-                                    {attr.emoji} {attr.name}
-                                  </span>
-                                ) : null;
-                              })}
-                            </div>
-                          )}
-
-                          {/* Linked tasks */}
-                          <div className="border-t border-white/5 pt-3">
-                            <p className="text-xs text-white/30 mb-2">
-                              关联任务（{completedCount}/{linkedTasks.length}）
-                            </p>
-                            {linkedTasks.length === 0 ? (
-                              <p className="text-xs text-white/20 italic">
-                                暂无关联任务，创建任务时可关联此主线
-                              </p>
-                            ) : (
-                              <div className="space-y-1.5">
-                                {linkedTasks.map((t) => (
-                                  <div
-                                    key={t.id}
-                                    className="flex items-center gap-2 text-xs"
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                        t.status === 'completed'
-                                          ? 'bg-green-400'
-                                          : 'bg-white/20'
-                                      }`}
-                                    />
-                                    <span
-                                      className={
-                                        t.status === 'completed'
-                                          ? 'text-white/30 line-through'
-                                          : 'text-white/60'
-                                      }
-                                    >
-                                      {t.title}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                          {/* Tree children — linked tasks */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-1 space-y-0">
+                                  {linkedTasks.length === 0 ? (
+                                    <div className="relative pl-6 py-2">
+                                      <span
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 text-white/10 text-xs select-none"
+                                        style={{ fontFamily: 'monospace' }}
+                                      >
+                                        └──
+                                      </span>
+                                      <span className="text-xs text-white/20 italic">
+                                        暂无关联任务，创建任务时可关联此主线
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    linkedTasks.map((t, idx) => {
+                                      const isLast = idx === linkedTasks.length - 1;
+                                      return (
+                                        <div key={t.id} className="relative pl-6 py-1.5">
+                                          <span
+                                            className="absolute left-0 top-1/2 -translate-y-1/2 text-yellow-400/20 text-xs select-none"
+                                            style={{ fontFamily: 'monospace' }}
+                                          >
+                                            {isLast ? '└──' : '├──'}
+                                          </span>
+                                          <div className="flex items-center gap-2">
+                                            <span
+                                              className={`w-2 h-2 rounded-full shrink-0 ${
+                                                t.status === 'completed'
+                                                  ? 'bg-green-400'
+                                                  : 'bg-white/20 ring-1 ring-white/10'
+                                              }`}
+                                            />
+                                            <span
+                                              className={`text-xs ${
+                                                t.status === 'completed'
+                                                  ? 'text-white/30 line-through'
+                                                  : 'text-white/70'
+                                              }`}
+                                            >
+                                              {t.title}
+                                            </span>
+                                            {t.rarity >= 4 && (
+                                              <span className="text-[10px] text-yellow-400/50">
+                                                {'★'.repeat(t.rarity)}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </motion.div>
                             )}
-                          </div>
-                        </GlassCard>
+                          </AnimatePresence>
+                        </div>
                       </motion.div>
                     );
                   })}
-                </AnimatePresence>
+                </div>
               )}
 
-              {/* Completed/Abandoned mainlines summary */}
+              {/* Completed/Abandoned mainlines — collapsible */}
               {mainlineQuests.filter((q) => q.status !== 'active').length > 0 && (
-                <div className="mt-4 border-t border-white/5 pt-4">
-                  <p className="text-xs text-white/30 mb-2">已结束的主线</p>
-                  <div className="space-y-2">
-                    {mainlineQuests
-                      .filter((q) => q.status !== 'active')
-                      .map((q) => (
-                        <div
-                          key={q.id}
-                          className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3 border border-white/5"
-                        >
-                          <span className="text-sm text-white/40">{q.title}</span>
-                          <span
-                            className={`text-xs ${
-                              q.status === 'completed' ? 'text-green-400/60' : 'text-white/25'
-                            }`}
-                          >
-                            {q.status === 'completed' ? '已完成' : '已放弃'}
-                          </span>
+                <div className="mt-4">
+                  <button
+                    className="flex items-center gap-2 text-xs text-white/30 hover:text-white/50 transition-colors py-2"
+                    onClick={() => setShowFinished((v) => !v)}
+                  >
+                    <motion.span
+                      animate={{ rotate: showFinished ? 90 : 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-[10px]"
+                    >
+                      ▶
+                    </motion.span>
+                    已结束的主线（{mainlineQuests.filter((q) => q.status !== 'active').length}）
+                  </button>
+                  <AnimatePresence>
+                    {showFinished && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-1.5 pl-4 border-l border-white/5">
+                          {mainlineQuests
+                            .filter((q) => q.status !== 'active')
+                            .map((q) => (
+                              <div
+                                key={q.id}
+                                className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5"
+                              >
+                                <span className="text-sm text-white/40">{q.title}</span>
+                                <span
+                                  className={`text-xs ${
+                                    q.status === 'completed' ? 'text-green-400/60' : 'text-white/25'
+                                  }`}
+                                >
+                                  {q.status === 'completed' ? '已完成' : '已放弃'}
+                                </span>
+                              </div>
+                            ))}
                         </div>
-                      ))}
-                  </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>

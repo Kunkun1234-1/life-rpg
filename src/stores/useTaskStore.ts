@@ -4,6 +4,7 @@ import type { Task, TaskCompletion, AttributeKey } from '../types';
 import { calculateTaskReward, calculateSubtaskReward, calculateStaminaCost } from '../lib/gameFormulas';
 import { usePlayerStore } from './usePlayerStore';
 import { useEquipmentStore } from './useEquipmentStore';
+import { useShopStore } from './useShopStore';
 
 interface CreateTaskData {
   title: string;
@@ -79,7 +80,27 @@ export const useTaskStore = create<TaskStore>()(
           playerStore.stamina
         );
 
-        const { exp, stardust } = calculateTaskReward(
+        const activeBuffs = useShopStore.getState().getActiveBuffs();
+        // Global exp/stardust boost
+        const expBuff = activeBuffs.find((b) => b.effectType === 'exp_boost');
+        const stardustBuff = activeBuffs.find((b) => b.effectType === 'stardust_boost');
+        // Attribute-specific boosts (attr_resonance + fate_compass)
+        const attrBuffs = activeBuffs.filter(
+          (b) =>
+            (b.effectType === 'attr_resonance' || b.effectType === 'fate_compass') &&
+            b.attributeKey === task.element
+        );
+        // Sum attribute-specific exp multiplier
+        let attrExpBoostValue = 1.0;
+        for (const ab of attrBuffs) {
+          if (ab.effectType === 'attr_resonance') {
+            attrExpBoostValue += ab.effectValue ?? 0.2; // additive +20%
+          } else if (ab.effectType === 'fate_compass') {
+            attrExpBoostValue *= ab.effectValue ?? 1.5; // multiplicative x1.5
+          }
+        }
+
+        const { exp: baseRewardExp, stardust } = calculateTaskReward(
           task.baseExp,
           task.baseStardust,
           {
@@ -87,10 +108,13 @@ export const useTaskStore = create<TaskStore>()(
             isOverachieve,
             isOverdraft,
             equipmentBonus: useEquipmentStore.getState().getEquippedBonus(task.element),
-            expBoostActive: false,
-            stardustBoostActive: false,
+            expBoostActive: !!expBuff,
+            stardustBoostActive: !!stardustBuff,
+            expBoostValue: expBuff?.effectValue,
+            stardustBoostValue: stardustBuff?.effectValue,
           }
         );
+        const exp = Math.round(baseRewardExp * attrExpBoostValue);
 
         const now = new Date().toISOString();
         const completion: TaskCompletion = {

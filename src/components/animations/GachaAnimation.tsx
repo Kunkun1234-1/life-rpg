@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { playWishStart, play3StarReveal, play4StarReveal, play5StarReveal, playAmbientDrone } from '../../lib/gachaAudio';
 
 interface GachaPrize {
   name: string;
@@ -510,13 +511,20 @@ export function GachaAnimation({ show, prizes, mode, onDismiss }: GachaAnimation
   const [videoError, setVideoError] = useState(false);
   const highestRarity = getHighestRarity(prizes);
 
+  const stopDroneRef = useRef<(() => void) | null>(null);
+
   // Reset phase when show changes
   useEffect(() => {
     if (show && prizes.length > 0) {
       setPhase('loading');
       setVideoReady(false);
       setVideoError(false);
+      playWishStart();
     }
+    return () => {
+      stopDroneRef.current?.();
+      stopDroneRef.current = null;
+    };
   }, [show, prizes]);
 
   // Start video when ready
@@ -527,8 +535,22 @@ export function GachaAnimation({ show, prizes, mode, onDismiss }: GachaAnimation
         setPhase(mode === 'multi' ? 'multi-reveal' : 'result');
       });
       setPhase('video');
+      // Start ambient drone during video
+      stopDroneRef.current?.();
+      stopDroneRef.current = playAmbientDrone();
     }
   }, [phase, videoReady, mode]);
+
+  // Play reveal sound when entering result/multi-reveal phase
+  useEffect(() => {
+    if (phase === 'result' || phase === 'multi-reveal') {
+      stopDroneRef.current?.();
+      stopDroneRef.current = null;
+      if (highestRarity === 5) play5StarReveal();
+      else if (highestRarity === 4) play4StarReveal();
+      else play3StarReveal();
+    }
+  }, [phase, highestRarity]);
 
   // If video fails to load, skip directly to result
   useEffect(() => {
@@ -554,6 +576,8 @@ export function GachaAnimation({ show, prizes, mode, onDismiss }: GachaAnimation
     if (videoRef.current) {
       videoRef.current.pause();
     }
+    stopDroneRef.current?.();
+    stopDroneRef.current = null;
     setPhase(mode === 'multi' ? 'multi-reveal' : 'result');
   }, [highestRarity, mode]);
 

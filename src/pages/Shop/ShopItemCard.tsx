@@ -21,7 +21,14 @@ export const ShopItemCard: React.FC<ShopItemCardProps> = ({
     <div className="rounded-xl p-4 flex flex-col gap-2"
       style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div className="flex items-start justify-between">
-        <h3 className="text-sm font-semibold text-white">{item.name}</h3>
+        <div className="flex items-center gap-2">
+          {item.iconUrl ? (
+            <img src={item.iconUrl} alt="" className="w-7 h-7 rounded object-cover shrink-0" />
+          ) : item.emoji ? (
+            <span className="text-xl leading-none shrink-0">{item.emoji}</span>
+          ) : null}
+          <h3 className="text-sm font-semibold text-white">{item.name}</h3>
+        </div>
         {item.maxPerMonth != null && (
           <span className="text-xs px-2 py-0.5 rounded-full"
             style={{ background: limitReached ? 'rgba(239,68,68,0.2)' : 'rgba(255,213,79,0.15)', color: limitReached ? '#f87171' : '#FFD54F' }}>

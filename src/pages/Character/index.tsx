@@ -63,6 +63,7 @@ const BreakthroughPanel: React.FC<{ adventureLevel: number; attributeExp: Record
 const CharacterPage: React.FC = () => {
   const navigate = useNavigate();
   const playerName = usePlayerStore(s => s.playerName);
+  const avatarUrl = usePlayerStore(s => s.avatarUrl);
   const getCurrentTitle = usePlayerStore(s => s.getCurrentTitle);
   const totalExp = usePlayerStore(s => s.totalExp);
   const attributeExp = usePlayerStore(s => s.attributeExp);
@@ -146,7 +147,16 @@ const CharacterPage: React.FC = () => {
           {/* Player Card */}
           <GlassCard className="p-5">
             <div className="flex items-start justify-between mb-3">
-              <div>
+              <div className="flex items-center gap-3">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="avatar" className="w-14 h-14 rounded-full object-cover ring-2 ring-yellow-400/30 shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #FFD54F 0%, #FF7043 100%)', color: '#0a0a1a' }}>
+                    {playerName?.charAt(0) ?? '旅'}
+                  </div>
+                )}
+                <div>
                 <h2
                   className="text-xl font-bold text-white mb-1"
                   style={{ fontFamily: 'Noto Serif SC, serif' }}
@@ -156,6 +166,7 @@ const CharacterPage: React.FC = () => {
                 <span className="text-sm font-medium" style={{ color: '#FFD54F' }}>
                   {getCurrentTitle()}
                 </span>
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-white">Lv.{adventureProgress.level}</div>

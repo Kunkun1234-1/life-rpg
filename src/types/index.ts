@@ -140,6 +140,8 @@ export interface ShopItem {
   effectType: ItemEffectType;
   effectValue?: number;
   isRotating?: boolean;
+  emoji?: string;
+  iconUrl?: string;
 }
 
 export interface InventoryItem {
@@ -149,6 +151,15 @@ export interface InventoryItem {
   item: ShopItem;
   quantity: number;
   obtainedAt: string;
+}
+
+export interface ActiveBuff {
+  id: string;
+  effectType: ItemEffectType;
+  effectValue?: number;
+  attributeKey?: AttributeKey;
+  activatedAt: string;
+  expiresAt: string;
 }
 
 // --- Boss System ---

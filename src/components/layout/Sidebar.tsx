@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -18,13 +19,56 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/principles', icon: '📖', label: '原则' },
 ];
 
+function compressImage(file: File, maxSize: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+        const ctx = canvas.getContext('2d')!;
+        // Center crop
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, maxSize, maxSize);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const playerName = usePlayerStore((s) => s.playerName);
+  const avatarUrl = usePlayerStore((s) => s.avatarUrl);
+  const setAvatar = usePlayerStore((s) => s.setAvatar);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Get the first character of player name for avatar
   const avatarChar = playerName ? playerName.charAt(0) : '旅';
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file, 128);
+      setAvatar(dataUrl);
+    } catch {
+      // silently fail
+    }
+    e.target.value = '';
+  };
 
   return (
     <aside
@@ -37,16 +81,34 @@ export function Sidebar() {
       }}
     >
       {/* Player Avatar */}
-      <div className="mb-4 mt-1" title={user?.email ?? ''}>
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
-          style={{
-            background: 'linear-gradient(135deg, #FFD54F 0%, #FF7043 100%)',
-            color: '#0a0a1a',
-          }}
-        >
-          {avatarChar}
+      <div className="mb-4 mt-1 relative group cursor-pointer" title={user?.email ?? '点击更换头像'} onClick={handleAvatarClick}>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="avatar"
+            className="w-10 h-10 rounded-full object-cover ring-2 ring-yellow-400/30"
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
+            style={{
+              background: 'linear-gradient(135deg, #FFD54F 0%, #FF7043 100%)',
+              color: '#0a0a1a',
+            }}
+          >
+            {avatarChar}
+          </div>
+        )}
+        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-white text-xs">换</span>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
 
       {/* Navigation Icons */}
@@ -65,7 +127,6 @@ export function Sidebar() {
           >
             {({ isActive }) => (
               <>
-                {/* Gold active indicator */}
                 {isActive && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r"
