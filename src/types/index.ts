@@ -178,6 +178,10 @@ export interface Principle {
   action: string; // "Then..." action
   attributeKeys: AttributeKey[];
   sourceLogId?: string;
+  confidence?: number;        // 1-5
+  sourceType?: string;        // '直觉推导' | '逻辑论证' | '经验总结' | '他人建议'
+  verificationCount?: number;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -187,12 +191,31 @@ export interface DecisionLog {
   userId: string;
   date: string;
   scenario: string;
+  intuition?: string;
+  logicAnalysis?: string;
   decision: string;
   basis: string;
+  basisType?: string; // 'intuition' | 'principle' | 'logic' | 'experience'
   result: string;
   reflection: string;
+  extractedPrinciple?: string;
   newPrincipleId?: string;
   createdAt: string;
+}
+
+export interface FiveStepFlow {
+  id: string;
+  userId: string;
+  title: string;
+  goal: string;
+  problems: string[];
+  diagnosis: { intuition: string; logic: string; rootCause: string };
+  solutions: { description: string; chosen: boolean }[];
+  execution: { status: 'planning' | 'executing' | 'reviewing' | 'completed'; notes: string };
+  extractedPrincipleId?: string;
+  attributeKeys: AttributeKey[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- Goal System ---

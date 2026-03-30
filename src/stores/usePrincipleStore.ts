@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Principle, DecisionLog, Goal } from '../types';
+import type { Principle, DecisionLog, Goal, FiveStepFlow } from '../types';
 import { generateId } from '../lib/gameFormulas';
 
 interface PrincipleStore {
   principles: Principle[];
   decisionLogs: DecisionLog[];
   goals: Goal[];
+  fiveStepFlows: FiveStepFlow[];
   // Principle CRUD
   addPrinciple: (p: Omit<Principle, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updatePrinciple: (id: string, updates: Partial<Principle>) => void;
@@ -19,6 +20,10 @@ interface PrincipleStore {
   addGoal: (goal: Omit<Goal, 'id' | 'createdAt'>) => void;
   updateGoal: (id: string, updates: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
+  // FiveStepFlow CRUD
+  addFiveStepFlow: (flow: Omit<FiveStepFlow, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateFiveStepFlow: (id: string, updates: Partial<FiveStepFlow>) => void;
+  deleteFiveStepFlow: (id: string) => void;
   // Convert log to principle
   convertLogToPrinciple: (logId: string) => void;
 }
@@ -29,6 +34,7 @@ export const usePrincipleStore = create<PrincipleStore>()(
       principles: [],
       decisionLogs: [],
       goals: [],
+      fiveStepFlows: [],
 
       addPrinciple: (p) =>
         set((state) => ({
@@ -88,6 +94,31 @@ export const usePrincipleStore = create<PrincipleStore>()(
 
       deleteGoal: (id) =>
         set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+
+      addFiveStepFlow: (flow) =>
+        set((state) => ({
+          fiveStepFlows: [
+            ...state.fiveStepFlows,
+            {
+              ...flow,
+              id: generateId(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+        })),
+
+      updateFiveStepFlow: (id, updates) =>
+        set((state) => ({
+          fiveStepFlows: state.fiveStepFlows.map((f) =>
+            f.id === id ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f
+          ),
+        })),
+
+      deleteFiveStepFlow: (id) =>
+        set((state) => ({
+          fiveStepFlows: state.fiveStepFlows.filter((f) => f.id !== id),
+        })),
 
       convertLogToPrinciple: (logId) => {
         const log = get().decisionLogs.find((l) => l.id === logId);

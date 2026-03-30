@@ -7,7 +7,9 @@
       "Bash(git commit:*)",
       "Bash(/usr/bin/git --version)",
       "Bash(/usr/bin/env git:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(export PATH=\"/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin:$PATH\")",
+      "Bash(/home/wangkun/.local/share/fnm/node-versions/v24.3.0/installation/bin/node /home/wangkun/Downloads/gmaelife/node_modules/.bin/vite build)"
     ]
   }
 }
