@@ -13,7 +13,9 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
   collapsed,
   onToggle,
 }) => {
-  const [tab, setTab] = useState<'item_shop' | 'stored_reward'>('item_shop');
+  const [tab, setTab] = useState<'item_shop' | 'stored_reward'>(
+    inventory.some((i) => i.item.category === 'stored_reward') ? 'stored_reward' : 'item_shop'
+  );
   const useItem = useShopStore((s) => s.useItem);
 
   const filtered = inventory.filter((inv) => inv.item.category === tab);
@@ -41,6 +43,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
                   border: tab === t ? '1px solid rgba(255,213,79,0.3)' : '1px solid transparent',
                 }}>
                 {t === 'item_shop' ? '功能道具' : '存储奖励'}
+                {(() => { const count = inventory.filter(i => i.item.category === t).length; return count > 0 ? ` (${count})` : ''; })()}
               </button>
             ))}
           </div>
