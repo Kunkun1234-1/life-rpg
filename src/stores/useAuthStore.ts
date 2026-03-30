@@ -12,6 +12,7 @@ interface AuthStore {
   signUp: (email: string, password: string) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<boolean>;
   signInWithGithub: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -68,9 +69,13 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   signInWithGithub: async () => {
     set({ error: null });
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
-    if (error) {
-      set({ error: error.message });
-    }
+    if (error) set({ error: error.message });
+  },
+
+  signInWithGoogle: async () => {
+    set({ error: null });
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    if (error) set({ error: error.message });
   },
 
   signOut: async () => {
