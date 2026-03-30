@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 type Tab = 'login' | 'register';
-type Phase = 'logo' | 'door' | 'login';
+type Phase = 'splash' | 'login';
 
 // Generate star data once outside component to avoid re-renders
 function generateStars(count: number) {
@@ -25,59 +25,90 @@ function getDoorVideo(): string {
     : '/videos/login/nightdoor.webm';
 }
 
-/* ========== Logo Screen ========== */
-function LogoScreen({ onComplete }: { onComplete: () => void }) {
+/* ========== Splash: Logo overlaid on door video ========== */
+function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const stars = useMemo(() => generateStars(25), []);
+  const doorVideo = useMemo(() => getDoorVideo(), []);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showLogo, setShowLogo] = useState(true);
 
+  // After 1.5s: fade out logo and start playing door video
   useEffect(() => {
-    const timer = setTimeout(onComplete, 2500);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    const logoTimer = setTimeout(() => {
+      setShowLogo(false);
+      videoRef.current?.play().catch(() => onComplete());
+    }, 1500);
+    // Fallback: if everything takes too long, skip after 8s
+    const maxTimer = setTimeout(onComplete, 8000);
+    return () => { clearTimeout(logoTimer); clearTimeout(maxTimer); };
+  }, [onComplete, doorVideo]);
 
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
       style={{ background: '#000' }}
       onClick={onComplete}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.6 }}
     >
-      {/* Particle stars */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {stars.map((star) => (
-          <div
-            key={star.id}
-            className="absolute rounded-full"
-            style={{
-              left: star.left,
-              top: star.top,
-              width: star.size,
-              height: star.size,
-              background: '#FFD54F',
-              animation: `login-float-star ${star.duration} ${star.delay} infinite ease-in-out`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Logo */}
-      <motion.div
-        className="text-center z-10"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, delay: 0.5 }}
+      {/* Door video - plays behind logo, becomes visible when logo fades */}
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        onEnded={onComplete}
+        onError={onComplete}
       >
-        <h1
-          className="text-7xl font-bold tracking-[0.3em]"
-          style={{
-            fontFamily: '"Noto Serif SC", serif',
-            color: '#FFD54F',
-            textShadow: '0 0 40px rgba(255, 213, 79, 0.3)',
-          }}
-        >
-          LIFE RPG
+        <source src={doorVideo} type="video/webm" />
+      </video>
+
+      {/* Particle stars - visible during logo phase */}
+      <AnimatePresence>
+        {showLogo && (
+          <motion.div
+            className="absolute inset-0 overflow-hidden pointer-events-none z-10"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {stars.map((star) => (
+              <div
+                key={star.id}
+                className="absolute rounded-full"
+                style={{
+                  left: star.left,
+                  top: star.top,
+                  width: star.size,
+                  height: star.size,
+                  background: '#FFD54F',
+                  animation: `login-float-star ${star.duration} ${star.delay} infinite ease-in-out`,
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Logo - fades out after 1.5s to reveal door video */}
+      <AnimatePresence>
+        {showLogo && (
+          <motion.div
+            className="text-center z-20"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h1
+              className="text-7xl font-bold tracking-[0.3em]"
+              style={{
+                fontFamily: '"Noto Serif SC", serif',
+                color: '#FFD54F',
+                textShadow: '0 0 40px rgba(255, 213, 79, 0.3)',
+              }}
+            >
+              LIFE RPG
         </h1>
         <p
           className="mt-4 text-base tracking-[0.5em]"
@@ -92,10 +123,12 @@ function LogoScreen({ onComplete }: { onComplete: () => void }) {
           <div className="h-px w-12" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,213,79,0.5), transparent)' }} />
         </div>
       </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Click to skip hint */}
       <motion.p
-        className="absolute bottom-24 text-sm z-10"
+        className="absolute bottom-24 text-sm z-30"
         style={{
           color: 'rgba(255, 255, 255, 0.3)',
           fontFamily: '"Noto Serif SC", serif',
@@ -103,48 +136,10 @@ function LogoScreen({ onComplete }: { onComplete: () => void }) {
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 1.5 }}
+        transition={{ duration: 0.8, delay: 2 }}
       >
         点击任意处跳过
       </motion.p>
-    </motion.div>
-  );
-}
-
-/* ========== Door Video Screen ========== */
-function DoorVideoScreen({ onComplete }: { onComplete: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const doorVideo = useMemo(() => getDoorVideo(), []);
-
-  useEffect(() => {
-    // Fallback: if video doesn't start playing within 1s, skip
-    const fallbackTimer = setTimeout(() => {
-      if (videoRef.current && videoRef.current.readyState < 2) {
-        onComplete();
-      }
-    }, 1000);
-    return () => clearTimeout(fallbackTimer);
-  }, [onComplete]);
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-40"
-      style={{ background: '#000' }}
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        onEnded={onComplete}
-        onError={onComplete}
-      >
-        <source src={doorVideo} type="video/webm" />
-      </video>
     </motion.div>
   );
 }
@@ -452,29 +447,20 @@ function SubmitButton({ loading, text }: { loading: boolean; text: string }) {
 
 /* ========== Main LoginPage ========== */
 export default function LoginPage() {
-  const [phase, setPhase] = useState<Phase>('logo');
+  const [phase, setPhase] = useState<Phase>('splash');
 
-  const handleLogoComplete = useCallback(() => {
-    setPhase('door');
-  }, []);
-
-  const handleDoorComplete = useCallback(() => {
+  const handleSplashComplete = useCallback(() => {
     setPhase('login');
   }, []);
 
   return (
     <div className="fixed inset-0" style={{ background: '#000' }}>
-      {/* Login form is always rendered behind overlays once past logo */}
+      {/* Login form always rendered behind splash */}
       {phase === 'login' && <LoginFormView />}
 
-      {/* Door video overlay */}
+      {/* Splash: logo + door video combined */}
       <AnimatePresence>
-        {phase === 'door' && <DoorVideoScreen onComplete={handleDoorComplete} />}
-      </AnimatePresence>
-
-      {/* Logo screen overlay */}
-      <AnimatePresence>
-        {phase === 'logo' && <LogoScreen onComplete={handleLogoComplete} />}
+        {phase === 'splash' && <SplashScreen onComplete={handleSplashComplete} />}
       </AnimatePresence>
     </div>
   );
