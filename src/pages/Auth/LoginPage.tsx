@@ -1,10 +1,165 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 type Tab = 'login' | 'register';
+type Phase = 'splash' | 'doors' | 'login';
 
-export default function LoginPage() {
+// Generate star data once outside component to avoid re-renders
+function generateStars(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    size: 1 + Math.random() * 2,
+    delay: `${Math.random() * 4}s`,
+    duration: `${3 + Math.random() * 3}s`,
+  }));
+}
+
+/* ========== Splash Screen ========== */
+function SplashScreen({ onStart }: { onStart: () => void }) {
+  const [showPrompt, setShowPrompt] = useState(false);
+  const stars = useMemo(() => generateStars(25), []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowPrompt(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
+      style={{ background: '#000' }}
+      onClick={onStart}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Particle stars */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {stars.map((star) => (
+          <div
+            key={star.id}
+            className="absolute rounded-full"
+            style={{
+              left: star.left,
+              top: star.top,
+              width: star.size,
+              height: star.size,
+              background: '#FFD54F',
+              animation: `login-float-star ${star.duration} ${star.delay} infinite ease-in-out`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Logo */}
+      <motion.div
+        className="text-center z-10"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1, delay: 0.5 }}
+      >
+        <h1
+          className="text-7xl font-bold tracking-[0.3em]"
+          style={{
+            fontFamily: '"Noto Serif SC", serif',
+            color: '#FFD54F',
+            textShadow: '0 0 40px rgba(255, 213, 79, 0.3)',
+          }}
+        >
+          LIFE RPG
+        </h1>
+        <p
+          className="mt-4 text-base tracking-[0.5em]"
+          style={{ color: 'rgba(255, 255, 255, 0.4)', fontFamily: '"Noto Serif SC", serif' }}
+        >
+          人生冒险
+        </p>
+      </motion.div>
+
+      {/* Click prompt */}
+      <AnimatePresence>
+        {showPrompt && (
+          <motion.p
+            className="absolute bottom-24 text-sm z-10"
+            style={{
+              color: 'rgba(255, 255, 255, 0.3)',
+              fontFamily: '"Noto Serif SC", serif',
+              animation: 'login-pulse 2s infinite ease-in-out',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+          >
+            点击任意处开始
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ========== Door Animation ========== */
+function DoorAnimation({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 1200);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  const panelStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    width: '50%',
+    height: '100%',
+    background: 'linear-gradient(180deg, #0a0a1a 0%, #0d0d24 50%, #0a0a1a 100%)',
+    zIndex: 40,
+  };
+
+  // Subtle vertical line pattern overlay
+  const lineOverlay: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage:
+      'repeating-linear-gradient(90deg, rgba(255,213,79,0.02) 0px, rgba(255,213,79,0.02) 1px, transparent 1px, transparent 60px)',
+  };
+
+  return (
+    <>
+      {/* Left door */}
+      <motion.div
+        style={{ ...panelStyle, left: 0 }}
+        initial={{ x: '0%' }}
+        animate={{ x: '-100%' }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <div style={lineOverlay} />
+        {/* Center seam line */}
+        <div
+          className="absolute top-0 right-0 w-px h-full"
+          style={{ background: 'linear-gradient(180deg, transparent 10%, rgba(255,213,79,0.15) 50%, transparent 90%)' }}
+        />
+      </motion.div>
+      {/* Right door */}
+      <motion.div
+        style={{ ...panelStyle, right: 0 }}
+        initial={{ x: '0%' }}
+        animate={{ x: '100%' }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <div style={lineOverlay} />
+        <div
+          className="absolute top-0 left-0 w-px h-full"
+          style={{ background: 'linear-gradient(180deg, transparent 10%, rgba(255,213,79,0.15) 50%, transparent 90%)' }}
+        />
+      </motion.div>
+    </>
+  );
+}
+
+/* ========== Login Form ========== */
+function LoginFormView() {
   const [tab, setTab] = useState<Tab>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,71 +213,56 @@ export default function LoginPage() {
   const displayError = localError || error;
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a0a1a 100%)',
-      }}
-    >
-      {/* Decorative particles */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: 4 + Math.random() * 4,
-              height: 4 + Math.random() * 4,
-              background: i % 2 === 0 ? '#FFD54F' : '#64B5F6',
-              opacity: 0.3,
-              left: `${10 + Math.random() * 80}%`,
-              top: `${10 + Math.random() * 80}%`,
-            }}
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.2, 0.5, 0.2],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </div>
+    <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
+      {/* Background video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ zIndex: 0 }}
+      >
+        <source src="/videos/login/bg.webm" type="video/webm" />
+      </video>
 
+      {/* Dark overlay */}
+      <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.6)', zIndex: 1 }} />
+
+      {/* Form card */}
       <motion.div
+        className="relative z-10 w-full max-w-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.6, delay: 0.3 }}
       >
-        {/* Glass card */}
         <div
           className="rounded-2xl p-8"
           style={{
             background: 'rgba(255, 255, 255, 0.04)',
-            backdropFilter: 'blur(16px)',
+            backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
           }}
         >
-          {/* Title */}
-          <div className="text-center mb-8">
-            <motion.h1
-              className="text-4xl font-bold mb-2"
+          {/* Logo */}
+          <div className="text-center mb-2">
+            <h1
+              className="text-3xl font-bold tracking-[0.15em]"
               style={{
                 fontFamily: '"Noto Serif SC", serif',
-                background: 'linear-gradient(135deg, #FFD54F 0%, #FF7043 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#FFD54F',
+                textShadow: '0 0 20px rgba(255, 213, 79, 0.2)',
               }}
             >
-              Life RPG
-            </motion.h1>
-            <p className="text-gray-400 text-sm" style={{ fontFamily: '"Noto Serif SC", serif' }}>
-              人生冒险
-            </p>
+              LIFE RPG
+            </h1>
+          </div>
+          {/* Decorative line */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,213,79,0.4), transparent)' }} />
+            <div className="mx-2 w-1.5 h-1.5 rotate-45" style={{ background: '#FFD54F', opacity: 0.5 }} />
+            <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,213,79,0.4), transparent)' }} />
           </div>
 
           {/* Tabs */}
@@ -168,7 +308,7 @@ export default function LoginPage() {
             )}
           </AnimatePresence>
 
-          {/* Register success message */}
+          {/* Register success */}
           <AnimatePresence>
             {registerSuccess && (
               <motion.div
@@ -199,20 +339,8 @@ export default function LoginPage() {
                 onSubmit={handleLogin}
                 className="space-y-4"
               >
-                <InputField
-                  label="邮箱"
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  placeholder="your@email.com"
-                />
-                <InputField
-                  label="密码"
-                  type="password"
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="输入密码"
-                />
+                <InputField label="邮箱" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
+                <InputField label="密码" type="password" value={password} onChange={setPassword} placeholder="输入密码" />
                 <SubmitButton loading={loading} text="登录" />
               </motion.form>
             ) : (
@@ -225,27 +353,9 @@ export default function LoginPage() {
                 onSubmit={handleRegister}
                 className="space-y-4"
               >
-                <InputField
-                  label="邮箱"
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  placeholder="your@email.com"
-                />
-                <InputField
-                  label="密码"
-                  type="password"
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="至少6个字符"
-                />
-                <InputField
-                  label="确认密码"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  placeholder="再次输入密码"
-                />
+                <InputField label="邮箱" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
+                <InputField label="密码" type="password" value={password} onChange={setPassword} placeholder="至少6个字符" />
+                <InputField label="确认密码" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="再次输入密码" />
                 <SubmitButton loading={loading} text="注册" />
               </motion.form>
             )}
@@ -279,6 +389,7 @@ export default function LoginPage() {
   );
 }
 
+/* ========== Input Field ========== */
 function InputField({
   label,
   type,
@@ -318,6 +429,7 @@ function InputField({
   );
 }
 
+/* ========== Submit Button ========== */
 function SubmitButton({ loading, text }: { loading: boolean; text: string }) {
   return (
     <motion.button
@@ -344,5 +456,35 @@ function SubmitButton({ loading, text }: { loading: boolean; text: string }) {
         text
       )}
     </motion.button>
+  );
+}
+
+/* ========== Main LoginPage ========== */
+export default function LoginPage() {
+  const [phase, setPhase] = useState<Phase>('splash');
+
+  const handleSplashClick = useCallback(() => {
+    setPhase('doors');
+  }, []);
+
+  const handleDoorsComplete = useCallback(() => {
+    setPhase('login');
+  }, []);
+
+  return (
+    <div className="fixed inset-0" style={{ background: '#0a0a1a' }}>
+      {/* Login form is always rendered behind doors */}
+      {phase !== 'splash' && <LoginFormView />}
+
+      {/* Door animation overlay */}
+      <AnimatePresence>
+        {phase === 'doors' && <DoorAnimation onComplete={handleDoorsComplete} />}
+      </AnimatePresence>
+
+      {/* Splash screen overlay */}
+      <AnimatePresence>
+        {phase === 'splash' && <SplashScreen onStart={handleSplashClick} />}
+      </AnimatePresence>
+    </div>
   );
 }
