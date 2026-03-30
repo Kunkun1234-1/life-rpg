@@ -90,7 +90,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
       resetDailyStamina: () =>
         set((state) => ({
-          stamina: Math.min(state.stamina + state.maxStamina, state.overflowStamina),
+          stamina: state.maxStamina,
         })),
 
       incrementStreak: () =>
