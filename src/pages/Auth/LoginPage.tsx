@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/useAuthStore';
 
@@ -17,52 +17,72 @@ function generateStars(count: number) {
   }));
 }
 
-// Time-of-day logic for door video
-function getDoorVideo(): string {
-  const hour = new Date().getHours();
-  return (hour >= 6 && hour < 18)
-    ? '/videos/login/morningdoor.webm'
-    : '/videos/login/nightdoor.webm';
-}
 
 /* ========== Splash: Logo overlaid on door video ========== */
 function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const stars = useMemo(() => generateStars(25), []);
-  const doorVideo = useMemo(() => getDoorVideo(), []);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [showLogo, setShowLogo] = useState(true);
 
-  // After 1.5s: fade out logo and start playing door video
+  // After 1.5s: open doors, after 3s: transition to login
   useEffect(() => {
-    const logoTimer = setTimeout(() => {
-      setShowLogo(false);
-      videoRef.current?.play().catch(() => onComplete());
-    }, 1500);
-    // Fallback: if everything takes too long, skip after 8s
-    const maxTimer = setTimeout(onComplete, 8000);
-    return () => { clearTimeout(logoTimer); clearTimeout(maxTimer); };
-  }, [onComplete, doorVideo]);
+    const doorTimer = setTimeout(() => setShowLogo(false), 1500);
+    const loginTimer = setTimeout(onComplete, 3000);
+    return () => { clearTimeout(doorTimer); clearTimeout(loginTimer); };
+  }, [onComplete]);
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
-      style={{ background: '#000' }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden"
       onClick={onComplete}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
     >
-      {/* Door video - plays behind logo, becomes visible when logo fades */}
-      <video
-        ref={videoRef}
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        onEnded={onComplete}
-        onError={onComplete}
-      >
-        <source src={doorVideo} type="video/webm" />
-      </video>
+      {/* Full-screen splash background image (Genshin wish scene) */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'url(/images/splash-background.webp)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'brightness(0.6)',
+        }}
+      />
+
+      {/* Door panels - split open when logo fades */}
+      <AnimatePresence>
+        {showLogo && (
+          <>
+            {/* Left door */}
+            <motion.div
+              className="absolute top-0 left-0 w-1/2 h-full z-30"
+              style={{
+                background: 'linear-gradient(to right, #08081a, #0e0e24)',
+                borderRight: '1px solid rgba(255,213,79,0.15)',
+              }}
+              exit={{ x: '-100%' }}
+              transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+            />
+            {/* Right door */}
+            <motion.div
+              className="absolute top-0 right-0 w-1/2 h-full z-30"
+              style={{
+                background: 'linear-gradient(to left, #08081a, #0e0e24)',
+                borderLeft: '1px solid rgba(255,213,79,0.15)',
+              }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+            />
+            {/* Center seam glow */}
+            <motion.div
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-full z-30"
+              style={{ background: 'linear-gradient(to bottom, transparent, rgba(255,213,79,0.4), transparent)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            />
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Particle stars - visible during logo phase */}
       <AnimatePresence>
@@ -454,7 +474,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="fixed inset-0" style={{ background: '#000' }}>
+    <div className="fixed inset-0" style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a0a1a 100%)' }}>
       {/* Login form always rendered behind splash */}
       {phase === 'login' && <LoginFormView />}
 
