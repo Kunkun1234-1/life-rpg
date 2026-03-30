@@ -17,6 +17,17 @@ interface AuthStore {
   clearError: () => void;
 }
 
+function clearLocalStorage() {
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('life-rpg-')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+}
+
 export const useAuthStore = create<AuthStore>()((set) => ({
   user: null,
   session: null,
@@ -33,9 +44,21 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       });
 
       supabase.auth.onAuthStateChange((_event, session) => {
+        const prevUser = useAuthStore.getState().user;
+        const newUser = session?.user ?? null;
+
+        // If user changed (login/switch), clear old localStorage data
+        if (newUser && prevUser && newUser.id !== prevUser.id) {
+          clearLocalStorage();
+        }
+        // If user just signed in (was null before), clear stale local data
+        if (newUser && !prevUser) {
+          clearLocalStorage();
+        }
+
         set({
           session,
-          user: session?.user ?? null,
+          user: newUser,
           loading: false,
         });
       });
@@ -81,17 +104,8 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   signOut: async () => {
     set({ error: null });
     await supabase.auth.signOut();
-    // Clear all life-rpg localStorage keys
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('life-rpg-')) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    clearLocalStorage();
     set({ user: null, session: null });
-    // Reload to reset all Zustand stores
     window.location.href = '/';
   },
 
