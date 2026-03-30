@@ -4,6 +4,8 @@ import type { GachaPool, GachaHistory, GachaPity, GachaPrize } from '../types';
 import { GACHA_CONFIG } from '../lib/constants';
 import { calculatePullRarity, selectPrize } from '../lib/gachaEngine';
 import { usePlayerStore } from './usePlayerStore';
+import { useShopStore } from './useShopStore';
+import type { ShopItem } from '../types';
 
 interface GachaState {
   pools: GachaPool[];
@@ -16,6 +18,18 @@ interface GachaState {
   pullTen: (poolId: string) => GachaPrize[];
   getPityInfo: (poolId: string) => GachaPity;
   getPoolHistory: (poolId: string) => GachaHistory[];
+}
+
+function prizeToShopItem(prize: GachaPrize): ShopItem {
+  return {
+    id: `gacha-prize-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: prize.name,
+    description: prize.description || `${prize.rarity}星祈愿奖励`,
+    category: 'stored_reward',
+    price: 0,
+    isSystem: false,
+    effectType: 'custom',
+  };
 }
 
 const DEFAULT_PITY = (poolId: string): GachaPity => ({
@@ -93,6 +107,9 @@ export const useGachaStore = create<GachaState>()(
           history: [historyEntry, ...history],
         });
 
+        // Add prize to inventory
+        useShopStore.getState().addToInventory(prizeToShopItem(prize));
+
         return prize;
       },
 
@@ -137,6 +154,12 @@ export const useGachaStore = create<GachaState>()(
           pity: { ...pity, [poolId]: currentPity },
           history: [...newHistoryEntries.reverse(), ...history],
         });
+
+        // Add all prizes to inventory
+        const shopStore = useShopStore.getState();
+        for (const prize of results) {
+          shopStore.addToInventory(prizeToShopItem(prize));
+        }
 
         return results;
       },

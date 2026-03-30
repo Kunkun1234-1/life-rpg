@@ -1,4 +1,4 @@
-import type { AttributeInfo, Title, RarityConfig, Achievement, Breakthrough, ShopItem, AchievementCategoryInfo } from '../types';
+import type { AttributeInfo, Title, RarityConfig, Achievement, Breakthrough, ShopItem, AchievementCategoryInfo, GachaPool } from '../types';
 
 // --- Attribute Definitions ---
 export const ATTRIBUTES: AttributeInfo[] = [
@@ -184,6 +184,56 @@ export const ROTATING_SHOP_ITEMS: Omit<ShopItem, 'id'>[] = [
   { name: '属性共鸣石', description: '使用后指定一个属性，本周该属性经验 +20%', category: 'item_shop', price: 150, isSystem: true, maxPerMonth: 1, effectType: 'attr_resonance', effectValue: 0.2, isRotating: true },
   { name: '命运罗盘', description: '使用后随机指定一个属性，当日该属性经验 ×1.5', category: 'item_shop', price: 60, isSystem: true, maxPerMonth: 2, effectType: 'fate_compass', effectValue: 1.5, isRotating: true },
   { name: '时光之沙', description: '使用后将一个已过期的挑战/史诗任务重新激活', category: 'item_shop', price: 200, isSystem: true, maxPerMonth: 1, effectType: 'time_sand', isRotating: true },
+];
+
+// --- Default Gacha Pools ---
+export const DEFAULT_GACHA_POOLS: Omit<GachaPool, 'id' | 'userId' | 'createdAt'>[] = [
+  {
+    poolName: '命运的馈赠',
+    fiveStarUp: { name: '完整休假日', emoji: '🏖️', description: '获得一整天完全自由的休息日', rarity: 5, isUp: true },
+    fiveStarStandard: [
+      { name: '大额购物券', emoji: '🛍️', description: '购买一件500+元想要的东西', rarity: 5 },
+      { name: '旅行基金', emoji: '✈️', description: '为下次旅行存入一笔基金', rarity: 5 },
+    ],
+    fourStarItems: [
+      { name: '精致晚餐', emoji: '🍽️', description: '享受一顿好吃的大餐', rarity: 4 },
+      { name: '电影之夜', emoji: '🎬', description: '看一部想看的电影', rarity: 4 },
+      { name: '购物小奖', emoji: '🎁', description: '买一个100-200元的小物件', rarity: 4 },
+      { name: '游戏时光', emoji: '🎮', description: '2小时不受打扰的游戏时间', rarity: 4 },
+      { name: '甜品时刻', emoji: '🍰', description: '去喜欢的甜品店吃一次', rarity: 4 },
+    ],
+    threeStarItems: [
+      { name: '奶茶券', emoji: '🧋', description: '一杯喜欢的奶茶', rarity: 3 },
+      { name: '零食包', emoji: '🍿', description: '买一份喜欢的零食', rarity: 3 },
+      { name: '半小时自由', emoji: '⏰', description: '30分钟做任何想做的事', rarity: 3 },
+      { name: '音乐时光', emoji: '🎵', description: '安静听30分钟喜欢的音乐', rarity: 3 },
+      { name: '散步券', emoji: '🚶', description: '出去散步放松一下', rarity: 3 },
+    ],
+    isActive: true,
+  },
+  {
+    poolName: '探索者的秘宝',
+    fiveStarUp: { name: '技能课程', emoji: '📚', description: '购买一门想学的在线课程', rarity: 5, isUp: true },
+    fiveStarStandard: [
+      { name: '运动装备', emoji: '🏃', description: '购买一件运动装备升级', rarity: 5 },
+      { name: '创作工具', emoji: '🎨', description: '购买一件创作/生产力工具', rarity: 5 },
+    ],
+    fourStarItems: [
+      { name: '新书奖励', emoji: '📖', description: '买一本想读的新书', rarity: 4 },
+      { name: '健身体验', emoji: '💪', description: '体验一次新的运动项目', rarity: 4 },
+      { name: '咖啡厅学习', emoji: '☕', description: '去咖啡厅享受一个下午的学习', rarity: 4 },
+      { name: '社交聚会', emoji: '🤝', description: '约朋友出去聚一次', rarity: 4 },
+      { name: '护肤品', emoji: '✨', description: '买一件小护肤品犒劳自己', rarity: 4 },
+    ],
+    threeStarItems: [
+      { name: '冥想10分钟', emoji: '🧘', description: '安静冥想放松10分钟', rarity: 3 },
+      { name: '热饮券', emoji: '☕', description: '一杯温暖的热饮', rarity: 3 },
+      { name: '水果加餐', emoji: '🍎', description: '给自己买份好水果', rarity: 3 },
+      { name: '拍照时刻', emoji: '📸', description: '出去拍一些喜欢的照片', rarity: 3 },
+      { name: '伸展放松', emoji: '🤸', description: '做5分钟拉伸运动', rarity: 3 },
+    ],
+    isActive: true,
+  },
 ];
 
 // --- Five Core Principles ---

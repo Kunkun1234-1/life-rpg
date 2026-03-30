@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGachaStore } from '../../stores/useGachaStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { GachaAnimation } from '../../components/animations/GachaAnimation';
 import type { GachaPrize, GachaPool } from '../../types';
-import { GACHA_CONFIG } from '../../lib/constants';
+import { GACHA_CONFIG, DEFAULT_GACHA_POOLS } from '../../lib/constants';
 
 const RARITY_COLORS: Record<number, string> = {
   3: '#9E9E9E',
   4: '#CE93D8',
   5: '#FFD54F',
 };
+
+interface PrizeInput {
+  name: string;
+  emoji: string;
+  description: string;
+}
 
 interface PoolConfigModalProps {
   onClose: () => void;
@@ -19,34 +25,129 @@ interface PoolConfigModalProps {
 
 function PoolConfigModal({ onClose, onSave }: PoolConfigModalProps) {
   const [poolName, setPoolName] = useState('');
-  const [fiveStarUpName, setFiveStarUpName] = useState('');
-  const [standardNames, setStandardNames] = useState(['', '']);
-  const [fourStarNames, setFourStarNames] = useState(['', '', '', '', '']);
-  const [threeStarNames, setThreeStarNames] = useState(['', '', '', '', '']);
+  const [fiveStarUp, setFiveStarUp] = useState<PrizeInput>({ name: '', emoji: '', description: '' });
+  const [standardItems, setStandardItems] = useState<PrizeInput[]>([
+    { name: '', emoji: '', description: '' },
+    { name: '', emoji: '', description: '' },
+  ]);
+  const [fourStarItems, setFourStarItems] = useState<PrizeInput[]>(
+    Array.from({ length: 5 }, () => ({ name: '', emoji: '', description: '' }))
+  );
+  const [threeStarItems, setThreeStarItems] = useState<PrizeInput[]>(
+    Array.from({ length: 5 }, () => ({ name: '', emoji: '', description: '' }))
+  );
+
+  const applyTemplate = (templateIndex: number) => {
+    const pool = DEFAULT_GACHA_POOLS[templateIndex];
+    if (!pool) return;
+    setPoolName(pool.poolName);
+    setFiveStarUp({
+      name: pool.fiveStarUp.name,
+      emoji: pool.fiveStarUp.emoji || '',
+      description: pool.fiveStarUp.description || '',
+    });
+    setStandardItems(
+      pool.fiveStarStandard.map((p) => ({
+        name: p.name,
+        emoji: p.emoji || '',
+        description: p.description || '',
+      }))
+    );
+    setFourStarItems(
+      pool.fourStarItems.map((p) => ({
+        name: p.name,
+        emoji: p.emoji || '',
+        description: p.description || '',
+      }))
+    );
+    setThreeStarItems(
+      pool.threeStarItems.map((p) => ({
+        name: p.name,
+        emoji: p.emoji || '',
+        description: p.description || '',
+      }))
+    );
+  };
 
   const handleSave = () => {
-    if (!poolName.trim() || !fiveStarUpName.trim()) return;
+    if (!poolName.trim() || !fiveStarUp.name.trim()) return;
 
-    const fiveStarStandard = standardNames
-      .filter((n) => n.trim())
-      .map((n) => ({ name: n.trim(), rarity: 5 as const }));
-    const fourStarItems = fourStarNames
-      .filter((n) => n.trim())
-      .map((n) => ({ name: n.trim(), rarity: 4 as const }));
-    const threeStarItems = threeStarNames
-      .filter((n) => n.trim())
-      .map((n) => ({ name: n.trim(), rarity: 3 as const }));
+    const fiveStarStandard = standardItems
+      .filter((n) => n.name.trim())
+      .map((n) => ({ name: n.name.trim(), rarity: 5 as const, emoji: n.emoji.trim() || undefined, description: n.description.trim() || undefined }));
+    const fourStars = fourStarItems
+      .filter((n) => n.name.trim())
+      .map((n) => ({ name: n.name.trim(), rarity: 4 as const, emoji: n.emoji.trim() || undefined, description: n.description.trim() || undefined }));
+    const threeStars = threeStarItems
+      .filter((n) => n.name.trim())
+      .map((n) => ({ name: n.name.trim(), rarity: 3 as const, emoji: n.emoji.trim() || undefined, description: n.description.trim() || undefined }));
 
     onSave({
       poolName: poolName.trim(),
-      fiveStarUp: { name: fiveStarUpName.trim(), rarity: 5, isUp: true },
+      fiveStarUp: {
+        name: fiveStarUp.name.trim(),
+        rarity: 5,
+        isUp: true,
+        emoji: fiveStarUp.emoji.trim() || undefined,
+        description: fiveStarUp.description.trim() || undefined,
+      },
       fiveStarStandard,
-      fourStarItems,
-      threeStarItems,
+      fourStarItems: fourStars,
+      threeStarItems: threeStars,
       isActive: true,
     });
     onClose();
   };
+
+  const updateItem = (
+    setter: React.Dispatch<React.SetStateAction<PrizeInput[]>>,
+    index: number,
+    field: keyof PrizeInput,
+    value: string
+  ) => {
+    setter((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const renderPrizeInputs = (
+    items: PrizeInput[],
+    setter: React.Dispatch<React.SetStateAction<PrizeInput[]>>,
+    label: string,
+    borderColor: string,
+  ) => (
+    <div>
+      <label className="block text-sm mb-1" style={{ color: `${borderColor}CC` }}>{label}</label>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex gap-2">
+            <input
+              className="w-12 rounded-lg bg-white/5 border border-white/10 px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/30"
+              value={item.emoji}
+              onChange={(e) => updateItem(setter, i, 'emoji', e.target.value)}
+              placeholder="😊"
+              title="表情"
+            />
+            <input
+              className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none"
+              style={{ borderColor: `${borderColor}30` }}
+              value={item.name}
+              onChange={(e) => updateItem(setter, i, 'name', e.target.value)}
+              placeholder={`名称 ${i + 1}`}
+            />
+            <input
+              className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none"
+              value={item.description}
+              onChange={(e) => updateItem(setter, i, 'description', e.target.value)}
+              placeholder="描述"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -54,11 +155,25 @@ function PoolConfigModal({ onClose, onSave }: PoolConfigModalProps) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="w-full max-w-lg mx-4 rounded-xl border border-white/10 bg-[#0f0f2a]/95 p-6 overflow-y-auto max-h-[90vh]"
+        className="w-full max-w-2xl mx-4 rounded-xl border border-white/10 bg-[#0f0f2a]/95 p-6 overflow-y-auto max-h-[90vh]"
       >
         <h2 className="text-lg font-semibold text-[#FFD54F] mb-4" style={{ fontFamily: 'Noto Serif SC, serif' }}>
           配置卡池
         </h2>
+
+        {/* Template buttons */}
+        <div className="flex gap-2 mb-4">
+          <span className="text-xs text-white/40 self-center">使用推荐卡池：</span>
+          {DEFAULT_GACHA_POOLS.map((pool, i) => (
+            <button
+              key={i}
+              onClick={() => applyTemplate(i)}
+              className="rounded-lg border border-[#FFD54F]/20 px-3 py-1 text-xs text-[#FFD54F]/70 hover:bg-[#FFD54F]/10 transition-colors"
+            >
+              {pool.poolName}
+            </button>
+          ))}
+        </div>
 
         <div className="space-y-4">
           <div>
@@ -67,76 +182,39 @@ function PoolConfigModal({ onClose, onSave }: PoolConfigModalProps) {
               className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FFD54F]/50"
               value={poolName}
               onChange={(e) => setPoolName(e.target.value)}
-              placeholder="例：命运的交叉路口"
+              placeholder="例：命运的馈赠"
             />
           </div>
 
+          {/* UP 5-star */}
           <div>
-            <label className="block text-sm text-[#FFD54F]/80 mb-1">UP 五星名称</label>
-            <input
-              className="w-full rounded-lg bg-white/5 border border-[#FFD54F]/20 px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FFD54F]/50"
-              value={fiveStarUpName}
-              onChange={(e) => setFiveStarUpName(e.target.value)}
-              placeholder="UP五星物品名称"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-[#FFD54F]/80 mb-1">常驻五星（2个）</label>
-            <div className="space-y-2">
-              {standardNames.map((name, i) => (
-                <input
-                  key={i}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FFD54F]/30"
-                  value={name}
-                  onChange={(e) => {
-                    const next = [...standardNames];
-                    next[i] = e.target.value;
-                    setStandardNames(next);
-                  }}
-                  placeholder={`常驻五星 ${i + 1}`}
-                />
-              ))}
+            <label className="block text-sm text-[#FFD54F]/80 mb-1">UP 五星</label>
+            <div className="flex gap-2">
+              <input
+                className="w-12 rounded-lg bg-white/5 border border-[#FFD54F]/20 px-2 py-2 text-white text-sm text-center focus:outline-none"
+                value={fiveStarUp.emoji}
+                onChange={(e) => setFiveStarUp((p) => ({ ...p, emoji: e.target.value }))}
+                placeholder="🏖️"
+                title="表情"
+              />
+              <input
+                className="flex-1 rounded-lg bg-white/5 border border-[#FFD54F]/20 px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FFD54F]/50"
+                value={fiveStarUp.name}
+                onChange={(e) => setFiveStarUp((p) => ({ ...p, name: e.target.value }))}
+                placeholder="UP五星名称"
+              />
+              <input
+                className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none"
+                value={fiveStarUp.description}
+                onChange={(e) => setFiveStarUp((p) => ({ ...p, description: e.target.value }))}
+                placeholder="描述"
+              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm text-[#CE93D8]/80 mb-1">四星物品（5个）</label>
-            <div className="space-y-2">
-              {fourStarNames.map((name, i) => (
-                <input
-                  key={i}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:border-[#CE93D8]/30"
-                  value={name}
-                  onChange={(e) => {
-                    const next = [...fourStarNames];
-                    next[i] = e.target.value;
-                    setFourStarNames(next);
-                  }}
-                  placeholder={`四星物品 ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-white/60 mb-1">三星物品（5个）</label>
-            <div className="space-y-2">
-              {threeStarNames.map((name, i) => (
-                <input
-                  key={i}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:border-white/20"
-                  value={name}
-                  onChange={(e) => {
-                    const next = [...threeStarNames];
-                    next[i] = e.target.value;
-                    setThreeStarNames(next);
-                  }}
-                  placeholder={`三星物品 ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
+          {renderPrizeInputs(standardItems, setStandardItems, '常驻五星（2个）', '#FFD54F')}
+          {renderPrizeInputs(fourStarItems, setFourStarItems, '四星物品（5个）', '#CE93D8')}
+          {renderPrizeInputs(threeStarItems, setThreeStarItems, '三星物品（5个）', '#9E9E9E')}
         </div>
 
         <div className="flex gap-3 mt-6">
@@ -148,7 +226,7 @@ function PoolConfigModal({ onClose, onSave }: PoolConfigModalProps) {
           </button>
           <button
             onClick={handleSave}
-            disabled={!poolName.trim() || !fiveStarUpName.trim()}
+            disabled={!poolName.trim() || !fiveStarUp.name.trim()}
             className="flex-1 rounded-lg py-2 text-sm font-medium transition-colors disabled:opacity-40"
             style={{ background: 'linear-gradient(135deg, #FFD54F, #FFB300)', color: '#0a0a1a' }}
           >
@@ -165,6 +243,7 @@ export default function GachaPanel() {
   const stardust = usePlayerStore((s) => s.stardust);
   const [showConfig, setShowConfig] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+  const [showInventoryToast, setShowInventoryToast] = useState(false);
 
   // Animation state
   const [animState, setAnimState] = useState<{
@@ -172,6 +251,16 @@ export default function GachaPanel() {
     prizes: GachaPrize[];
     mode: 'single' | 'multi';
   }>({ show: false, prizes: [], mode: 'single' });
+
+  // Auto-create default pools on first load if none exist
+  useEffect(() => {
+    if (pools.length === 0) {
+      for (const pool of DEFAULT_GACHA_POOLS) {
+        createPool(pool);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activePool = selectedPoolId
     ? pools.find((p) => p.id === selectedPoolId)
@@ -198,6 +287,9 @@ export default function GachaPanel() {
 
   const handleAnimDismiss = () => {
     setAnimState({ show: false, prizes: [], mode: 'single' });
+    // Show inventory toast
+    setShowInventoryToast(true);
+    setTimeout(() => setShowInventoryToast(false), 2000);
   };
 
   return (
@@ -221,7 +313,6 @@ export default function GachaPanel() {
       </div>
 
       {pools.length === 0 ? (
-        /* No pool state */
         <div
           className="rounded-xl border border-white/10 p-10 flex flex-col items-center gap-4"
           style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(10px)' }}
@@ -270,6 +361,7 @@ export default function GachaPanel() {
                       {activePool.poolName}
                     </h3>
                     <p className="text-sm text-[#FFD54F]/70 mt-0.5">
+                      {activePool.fiveStarUp.emoji && `${activePool.fiveStarUp.emoji} `}
                       UP ★★★★★ · {activePool.fiveStarUp.name}
                     </p>
                   </div>
@@ -349,6 +441,9 @@ export default function GachaPanel() {
                         style={{ background: `${RARITY_COLORS[entry.prize.rarity]}10` }}
                       >
                         <div className="flex items-center gap-2">
+                          {entry.prize.emoji && (
+                            <span className="text-sm">{entry.prize.emoji}</span>
+                          )}
                           <span
                             className="text-xs font-medium w-8"
                             style={{ color: RARITY_COLORS[entry.prize.rarity] }}
@@ -391,6 +486,21 @@ export default function GachaPanel() {
         mode={animState.mode}
         onDismiss={handleAnimDismiss}
       />
+
+      {/* Inventory toast */}
+      <AnimatePresence>
+        {showInventoryToast && (
+          <motion.div
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[10002] px-5 py-2.5 rounded-xl border border-[#FFD54F]/30 text-sm text-[#FFD54F]"
+            style={{ background: 'rgba(15,15,42,0.95)', backdropFilter: 'blur(10px)' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            已存入背包
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

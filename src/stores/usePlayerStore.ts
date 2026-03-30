@@ -46,7 +46,7 @@ export const usePlayerStore = create<PlayerStore>()(
     (set, get) => ({
       playerName: '冒险者',
       totalExp: 0,
-      stardust: 100,
+      stardust: 10000, // TODO: change back to 100 after testing
       stamina: 100,
       maxStamina: 100,
       overflowStamina: 150,

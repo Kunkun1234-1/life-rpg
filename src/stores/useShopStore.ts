@@ -10,6 +10,7 @@ interface ShopStore {
 
   buyItem: (shopItem: ShopItem) => boolean;
   useItem: (inventoryItemId: string) => void;
+  addToInventory: (item: ShopItem) => void;
   addCustomReward: (reward: Omit<ShopItem, 'id'>) => void;
   removeCustomReward: (id: string) => void;
 }
@@ -112,6 +113,28 @@ export const useShopStore = create<ShopStore>()(
             }));
             break;
         }
+      },
+
+      addToInventory: (item) => {
+        const now = new Date().toISOString();
+        const existing = get().inventory.find((i) => i.item.name === item.name);
+        set((state) => ({
+          inventory: existing
+            ? state.inventory.map((i) =>
+                i.item.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
+              )
+            : [
+                ...state.inventory,
+                {
+                  id: crypto.randomUUID(),
+                  userId: 'local',
+                  itemId: item.id,
+                  item,
+                  quantity: 1,
+                  obtainedAt: now,
+                },
+              ],
+        }));
       },
 
       addCustomReward: (reward) => {

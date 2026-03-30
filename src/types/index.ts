@@ -282,6 +282,8 @@ export interface GachaPrize {
   name: string;
   rarity: GachaRarity;
   isUp?: boolean; // for 5-star UP item
+  emoji?: string;
+  description?: string;
 }
 
 export interface GachaPool {

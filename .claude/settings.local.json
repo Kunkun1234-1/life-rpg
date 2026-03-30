@@ -6,7 +6,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(/usr/bin/git --version)",
-      "Bash(/usr/bin/env git:*)"
+      "Bash(/usr/bin/env git:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
