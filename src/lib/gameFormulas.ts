@@ -1,4 +1,4 @@
-import { TITLES, STAMINA } from './constants';
+import { TITLES, STAMINA, MAX_ADVENTURE_LEVEL } from './constants';
 
 // --- Adventure Level XP Curve ---
 // Per level required: 100 * 1.15^(Lv-1)
@@ -17,7 +17,7 @@ export function totalAdventureExpForLevel(level: number): number {
 export function getAdventureLevel(totalExp: number): number {
   let level = 1;
   let expNeeded = 0;
-  while (true) {
+  while (level < MAX_ADVENTURE_LEVEL) {
     const nextLevelExp = adventureLevelExp(level);
     if (expNeeded + nextLevelExp > totalExp) break;
     expNeeded += nextLevelExp;
@@ -28,6 +28,9 @@ export function getAdventureLevel(totalExp: number): number {
 
 export function getAdventureLevelProgress(totalExp: number): { level: number; currentLevelExp: number; nextLevelExp: number; progress: number } {
   const level = getAdventureLevel(totalExp);
+  if (level >= MAX_ADVENTURE_LEVEL) {
+    return { level, currentLevelExp: 0, nextLevelExp: 0, progress: 1 };
+  }
   const expForCurrentLevel = totalAdventureExpForLevel(level);
   const currentLevelExp = totalExp - expForCurrentLevel;
   const nextLevelExp = adventureLevelExp(level);

@@ -37,9 +37,11 @@ const StarRating: React.FC<{ rarity: number }> = ({ rarity }) => {
 
 const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const [expanded, setExpanded] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const completeTask = useTaskStore(s => s.completeTask);
   const completeSubtask = useTaskStore(s => s.completeSubtask);
   const updateTask = useTaskStore(s => s.updateTask);
+  const deleteTask = useTaskStore(s => s.deleteTask);
 
   const attrInfo = ATTRIBUTE_MAP[task.element];
   const rarityConfig = RARITY_MAP[task.rarity];
@@ -213,6 +215,48 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                     >
                       归档
                     </Button>
+                  </div>
+                )}
+
+                {/* Delete button for daily/weekly recurring tasks */}
+                {(task.cycle === 'daily' || task.cycle === 'weekly') && (
+                  <div className="pt-1">
+                    {!showDeleteConfirm ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteConfirm(true);
+                        }}
+                      >
+                        <span className="text-red-400">删除任务</span>
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-red-400">确认删除？此操作不可撤销</span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTask(task.id);
+                          }}
+                        >
+                          <span className="text-red-400">确认</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(false);
+                          }}
+                        >
+                          取消
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

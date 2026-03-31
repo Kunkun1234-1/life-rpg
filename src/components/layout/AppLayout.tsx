@@ -23,6 +23,7 @@ export function AppLayout() {
   const checkAndUnlock = useAchievementStore((s) => s.checkAndUnlock);
   const achievements = useAchievementStore((s) => s.achievements);
   const resetDailyTasks = useTaskStore((s) => s.resetDailyTasks);
+  const resetWeeklyTasks = useTaskStore((s) => s.resetWeeklyTasks);
   const checkWeeklyBoss = useBossStore((s) => s.checkWeeklyBoss);
 
   // Data loading state
@@ -122,12 +123,28 @@ export function AppLayout() {
   useEffect(() => {
     if (!dataLoaded) return;
     const lastResetKey = 'life-rpg-last-daily-reset';
-    const today = new Date().toDateString();
+    const lastWeeklyResetKey = 'life-rpg-last-weekly-reset';
+    const now = new Date();
+    const today = now.toDateString();
     const lastReset = localStorage.getItem(lastResetKey);
+
     if (lastReset !== today) {
       resetDailyStamina();
       resetDailyTasks();
       useShopStore.getState().clearExpiredBuffs();
+
+      // Weekly reset: check if we've crossed a Monday boundary since last weekly reset
+      const lastWeeklyReset = localStorage.getItem(lastWeeklyResetKey);
+      const currentMonday = new Date(now);
+      currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      currentMonday.setHours(0, 0, 0, 0);
+      const currentMondayStr = currentMonday.toDateString();
+
+      if (lastWeeklyReset !== currentMondayStr) {
+        resetWeeklyTasks();
+        localStorage.setItem(lastWeeklyResetKey, currentMondayStr);
+      }
+
       // Check weekly boss with current weekly task counts
       const tasks = useTaskStore.getState().tasks;
       const weeklyTasks = tasks.filter(t => t.cycle === 'weekly');
@@ -135,7 +152,7 @@ export function AppLayout() {
       checkWeeklyBoss(weeklyTasks.length, weeklyCompleted);
       localStorage.setItem(lastResetKey, today);
     }
-  }, [dataLoaded, resetDailyStamina, resetDailyTasks, checkWeeklyBoss]);
+  }, [dataLoaded, resetDailyStamina, resetDailyTasks, resetWeeklyTasks, checkWeeklyBoss]);
 
   // Show loading while data is being fetched
   if (!dataLoaded) {

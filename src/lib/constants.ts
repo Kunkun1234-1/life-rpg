@@ -12,6 +12,9 @@ export const ATTRIBUTES: AttributeInfo[] = [
 
 export const ATTRIBUTE_MAP = Object.fromEntries(ATTRIBUTES.map(a => [a.key, a])) as Record<string, AttributeInfo>;
 
+// --- Level System ---
+export const MAX_ADVENTURE_LEVEL = 120;
+
 // --- Title System ---
 export const TITLES: Title[] = [
   { level: 1, name: '初入尘世', description: '刚刚开始的旅行者' },
@@ -21,7 +24,14 @@ export const TITLES: Title[] = [
   { level: 20, name: '通达贤者', description: '多维度均衡发展' },
   { level: 30, name: '超凡入圣', description: '长期坚持的证明' },
   { level: 40, name: '命运主宰', description: '完全掌控自己的节奏' },
-  { level: 50, name: '万界之主', description: '终极称号，传说级成就' },
+  { level: 50, name: '万界之主', description: '传说缔造者' },
+  { level: 60, name: '星穹行者', description: '跨越星辰的旅人' },
+  { level: 70, name: '天命执行者', description: '命运轨迹的书写者' },
+  { level: 80, name: '深渊征服者', description: '挑战极限的勇者' },
+  { level: 90, name: '纪元先驱', description: '开创新时代的引路人' },
+  { level: 100, name: '永恒行者', description: '超越时间的存在' },
+  { level: 110, name: '虚空主宰', description: '万物法则的掌控者' },
+  { level: 120, name: '创世之神', description: '终极称号，至高无上' },
 ];
 
 // --- Task Rarity Config ---
@@ -169,6 +179,13 @@ export const BREAKTHROUGHS: Breakthrough[] = [
   { level: 20, condition: '完成一个史诗级任务 + 至少4个属性达到 Lv.5', description: '证明你能处理大型目标', completed: false },
   { level: 30, condition: '所有属性均达到 Lv.7 + 累计完成3个史诗级任务', description: '全面发展的证明', completed: false },
   { level: 40, condition: '完成一个传说级任务 + 所有属性均达到 Lv.10', description: '人生维度的重大突破', completed: false },
+  { level: 50, condition: '完成2个传说级任务 + 所有属性均达到 Lv.13', description: '已超越常人的境界', completed: false },
+  { level: 60, condition: '完成3个传说级任务 + 至少3个属性达到 Lv.16', description: '踏入星穹的资格', completed: false },
+  { level: 70, condition: '累计完成5个传说级任务 + 所有属性均达到 Lv.18', description: '天命之路的试炼', completed: false },
+  { level: 80, condition: '累计完成8个传说级任务 + 至少3个属性达到 Lv.22', description: '深渊的召唤', completed: false },
+  { level: 90, condition: '累计完成12个传说级任务 + 所有属性均达到 Lv.25', description: '纪元更迭的门槛', completed: false },
+  { level: 100, condition: '累计完成15个传说级任务 + 所有属性均达到 Lv.28', description: '超越时间的试炼', completed: false },
+  { level: 110, condition: '累计完成20个传说级任务 + 所有属性均达到 Lv.32', description: '虚空法则的考验', completed: false },
 ];
 
 // --- System Shop Items (Permanent) ---
