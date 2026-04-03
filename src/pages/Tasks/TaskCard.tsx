@@ -38,10 +38,17 @@ const StarRating: React.FC<{ rarity: number }> = ({ rarity }) => {
 const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const [expanded, setExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const completeTask = useTaskStore(s => s.completeTask);
   const completeSubtask = useTaskStore(s => s.completeSubtask);
   const updateTask = useTaskStore(s => s.updateTask);
   const deleteTask = useTaskStore(s => s.deleteTask);
+  const addSubtask = useTaskStore(s => s.addSubtask);
+  const removeSubtask = useTaskStore(s => s.removeSubtask);
+  const updateSubtask = useTaskStore(s => s.updateSubtask);
 
   const attrInfo = ATTRIBUTE_MAP[task.element];
   const rarityConfig = RARITY_MAP[task.rarity];
@@ -51,9 +58,34 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const subtasks = task.subtasks ?? [];
   const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
   const hasSubtasks = (task.rarity === 4 || task.rarity === 5) && subtasks.length > 0;
+  const canEditSubtasks = isActive && (task.rarity === 4 || task.rarity === 5);
 
   const handleCompleteSubtask = (subtaskId: string) => {
     completeSubtask(task.id, subtaskId);
+  };
+
+  const handleConfirmEditSubtask = (subtaskId: string) => {
+    if (editingSubtaskTitle.trim()) {
+      updateSubtask(task.id, subtaskId, editingSubtaskTitle.trim());
+    }
+    setEditingSubtaskId(null);
+  };
+
+  const handleConfirmAddSubtask = () => {
+    if (newSubtaskTitle.trim()) {
+      addSubtask(task.id, {
+        title: newSubtaskTitle.trim(),
+        element: task.element,
+        rarity: 1,
+        cycle: task.cycle,
+        baseExp: Math.round(task.baseExp / 4),
+        baseStardust: Math.round(task.baseStardust / 4),
+        staminaCost: 0,
+        parentTaskId: task.id,
+      });
+    }
+    setNewSubtaskTitle('');
+    setAddingSubtask(false);
   };
 
   return (
@@ -146,13 +178,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                 )}
 
                 {/* Subtask list */}
-                {hasSubtasks && (
+                {(hasSubtasks || canEditSubtasks) && (
                   <div className="space-y-2">
                     <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest">子任务</h4>
                     {subtasks.map(subtask => (
                       <div
                         key={subtask.id}
                         className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-all ${
@@ -169,12 +202,81 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                             <span className="text-white text-xs">✓</span>
                           )}
                         </button>
-                        <span className={`text-sm flex-1 ${subtask.status === 'completed' ? 'line-through text-white/30' : 'text-white/80'}`}>
-                          {subtask.title}
-                        </span>
-                        <span className="text-xs text-white/30">+{subtask.baseExp} EXP</span>
+                        {isActive && subtask.status !== 'completed' && editingSubtaskId === subtask.id ? (
+                          <input
+                            autoFocus
+                            className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-0.5 text-sm text-white outline-none focus:border-white/40"
+                            value={editingSubtaskTitle}
+                            onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleConfirmEditSubtask(subtask.id);
+                              else if (e.key === 'Escape') setEditingSubtaskId(null);
+                            }}
+                            onBlur={() => handleConfirmEditSubtask(subtask.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span
+                            className={`text-sm flex-1 ${subtask.status === 'completed' ? 'line-through text-white/30' : isActive ? 'text-white/80 cursor-text' : 'text-white/80'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isActive && subtask.status !== 'completed') {
+                                setEditingSubtaskId(subtask.id);
+                                setEditingSubtaskTitle(subtask.title);
+                              }
+                            }}
+                          >
+                            {subtask.title}
+                          </span>
+                        )}
+                        <span className="text-xs text-white/30 shrink-0">+{subtask.baseExp} EXP</span>
+                        {isActive && subtask.status !== 'completed' && (
+                          <button
+                            className="text-white/30 hover:text-red-400 transition-colors text-sm w-4 h-4 flex items-center justify-center shrink-0 leading-none"
+                            title="删除子任务"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSubtask(task.id, subtask.id);
+                            }}
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
                     ))}
+                    {/* Add subtask row */}
+                    {canEditSubtasks && (
+                      addingSubtask ? (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            autoFocus
+                            className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white outline-none focus:border-white/40"
+                            placeholder="输入子任务名称，回车确认..."
+                            value={newSubtaskTitle}
+                            onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleConfirmAddSubtask();
+                              else if (e.key === 'Escape') {
+                                setNewSubtaskTitle('');
+                                setAddingSubtask(false);
+                              }
+                            }}
+                            onBlur={handleConfirmAddSubtask}
+                          />
+                        </div>
+                      ) : (
+                        <button
+                          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors py-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddingSubtask(true);
+                          }}
+                        >
+                          <span className="text-base leading-none">+</span>
+                          <span>添加子任务</span>
+                        </button>
+                      )
+                    )}
                   </div>
                 )}
 

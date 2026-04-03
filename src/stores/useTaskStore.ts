@@ -32,6 +32,8 @@ interface TaskStore {
   resetWeeklyTasks: () => void;
   addSubtask: (parentId: string, subtask: Omit<Task, 'id' | 'createdAt' | 'isFirstCompletion' | 'status' | 'userId'>) => void;
   completeSubtask: (parentId: string, subtaskId: string) => void;
+  removeSubtask: (parentTaskId: string, subtaskId: string) => void;
+  updateSubtask: (parentTaskId: string, subtaskId: string, title: string) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -156,14 +158,14 @@ export const useTaskStore = create<TaskStore>()(
       resetDailyTasks: () =>
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.cycle === 'daily' ? { ...t, status: 'pending' as const } : t
+            t.cycle === 'daily' && t.status !== 'archived' ? { ...t, status: 'pending' as const } : t
           ),
         })),
 
       resetWeeklyTasks: () =>
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.cycle === 'weekly' ? { ...t, status: 'pending' as const } : t
+            t.cycle === 'weekly' && t.status !== 'archived' ? { ...t, status: 'pending' as const } : t
           ),
         })),
 
@@ -184,6 +186,29 @@ export const useTaskStore = create<TaskStore>()(
               ? { ...t, subtasks: [...(t.subtasks ?? []), newSubtask] }
               : t
           ),
+        }));
+      },
+
+      removeSubtask: (parentTaskId, subtaskId) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id !== parentTaskId) return t;
+            return { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) };
+          }),
+        }));
+      },
+
+      updateSubtask: (parentTaskId, subtaskId, title) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id !== parentTaskId) return t;
+            return {
+              ...t,
+              subtasks: (t.subtasks ?? []).map((s) =>
+                s.id === subtaskId ? { ...s, title } : s
+              ),
+            };
+          }),
         }));
       },
 
